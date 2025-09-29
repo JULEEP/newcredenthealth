@@ -23,6 +23,8 @@ import ProfilePage from "./Pages/ProfilePage"
 import DeleteAccountPage from "./Pages/DeleteAccountPage";
 import HelpPage from "./Pages/HelpPage";
 import DoctorBlogs from './Pages/DoctorBlogs'
+import PrivacyAndPolicy from "./Pages/PrivacyAndPolicy";
+import TermsandConditions from "./Pages/TermsAndConditions";
 
 function App() {
   return (
@@ -35,24 +37,26 @@ function App() {
         <Route path="/doctor-category/:category/:type" element={<DoctorCategoryPage />} />
         <Route path="/doctor-list/:categoryName" element={<DoctorListPage />} />
         <Route path="/mybookings" element={<MyBookings />} />
-         <Route path="/lab-category" element={<LabCategoryPage />} />
-          <Route path="/labtest" element={<LabTestPage />} />
+        <Route path="/lab-category" element={<LabCategoryPage />} />
+        <Route path="/labtest" element={<LabTestPage />} />
         <Route path="/packages" element={<PackagesPage />} />
         <Route path="/scan&xrays" element={<ScanAndXRayPage />} />
         <Route path="/prescriptions" element={<PrescriptionPage />} />
-          <Route path="/diagnostics" element={<DiagnosticsPage />} />
-          <Route path="/wallet" element={<WalletPage />} />
-          <Route path="/medicalrecord" element={<MedicalRecordsPage />} />
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/family" element={<FamilyPage />} />
-          <Route path="/address" element={<AddressPage />} />
-          <Route path="/hra-category" element={<HraPage />} />
-           <Route path="/hra-questions" element={<HraQuestionsPage />} />
-          <Route path="/notification" element={<NotificationsPage />} />
-         <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/delete-account" element={<DeleteAccountPage />} />
-          <Route path="/help" element={<HelpPage />} />
-          <Route path="/doctorblogs" element={<DoctorBlogs />} />
+        <Route path="/diagnostics" element={<DiagnosticsPage />} />
+        <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/medicalrecord" element={<MedicalRecordsPage />} />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/family" element={<FamilyPage />} />
+        <Route path="/address" element={<AddressPage />} />
+        <Route path="/hra-category" element={<HraPage />} />
+        <Route path="/hra-questions" element={<HraQuestionsPage />} />
+        <Route path="/notification" element={<NotificationsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/delete-account" element={<DeleteAccountPage />} />
+        <Route path="/help" element={<HelpPage />} />
+        <Route path="/doctorblogs" element={<DoctorBlogs />} />
+        <Route path="/privacyandpolicy" element={<PrivacyAndPolicy />} />
+        <Route path="/termsandconditions" element={<TermsandConditions />} />
       </Routes>
     </Router>
   );

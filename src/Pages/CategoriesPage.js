@@ -4,10 +4,7 @@ import { useNavigate } from "react-router-dom";
 const categories = [
   { name: "Doctor Consultation", image: "/category/doc.png" },
   { name: "Lab Test & Packages", image: "/category/lab.png" },
-  { name: "HRA", image: "/category/hra.png" },
-  { name: "Eye Care", image: "/category/eyecare.png" },
-  { name: "Dental Care", image: "/category/dentalcare.png" },
-  { name: "Medicines", image: "/category/medicines.png" },
+  { name: "HRA", image: "/category/hra.png" }
 ];
 
 const CategoriesPage = () => {

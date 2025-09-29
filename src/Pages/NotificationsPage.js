@@ -138,10 +138,11 @@ const NotificationsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-
-      <div className="p-4">
-        <h2 className="text-xl font-semibold text-center mb-4">Notifications</h2>
-        {renderNotifications()}
+      <div className="flex flex-col min-h-screen pb-16 lg:pb-0">
+        <div className="p-4">
+          <h2 className="text-xl font-semibold text-center mb-4">Notifications</h2>
+          {renderNotifications()}
+        </div>
       </div>
     </div>
   );

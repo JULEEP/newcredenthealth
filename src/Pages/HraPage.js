@@ -59,99 +59,100 @@ const HraPage = () => {
   };
 
   return (
-  <div className="bg-white min-h-screen flex flex-col pb-20">
-    {/* Navbar */}
-    <Navbar />
+    <div className="bg-white min-h-screen flex flex-col pb-20">
+      {/* Navbar */}
+      <Navbar />
+      <div className="flex flex-col min-h-screen pb-16 lg:pb-0">
+        {/* Content Wrapper with padding-top */}
+        <div className="flex-1 pt-16 px-5 py-6 overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-center mb-4">
+            <IoArrowBack
+              size={24}
+              className="cursor-pointer"
+              onClick={handleBack}
+            />
+            <h1 className="flex-1 text-center text-lg font-semibold">HRA</h1>
+            <div className="w-6" /> {/* spacer to balance layout */}
+          </div>
 
-    {/* Content Wrapper with padding-top */}
-    <div className="flex-1 pt-16 px-5 py-6 overflow-y-auto">
-      {/* Header */}
-      <div className="flex items-center mb-4">
-        <IoArrowBack
-          size={24}
-          className="cursor-pointer"
-          onClick={handleBack}
-        />
-        <h1 className="flex-1 text-center text-lg font-semibold">HRA</h1>
-        <div className="w-6" /> {/* spacer to balance layout */}
-      </div>
+          {showMessage ? (
+            <div className="max-w-md mx-auto">
+              {/* Title */}
+              <h2 className="text-3xl font-bold mb-4">
+                Know Your <span className="text-blue-600">Health</span> Risk
+              </h2>
 
-      {showMessage ? (
-        <div className="max-w-md mx-auto">
-          {/* Title */}
-          <h2 className="text-3xl font-bold mb-4">
-            Know Your <span className="text-blue-600">Health</span> Risk
-          </h2>
+              {/* What's This */}
+              <h3 className="text-lg font-semibold mb-1">What's This?</h3>
+              <p className="text-gray-700 mb-4">
+                A quick, evidence-based questionnaire that spots potential health
+                risks and gives you an instant overview of your current health risk.
+                <br />
+                <br />
+                These questions guide you to wellness, not fear.
+              </p>
 
-          {/* What's This */}
-          <h3 className="text-lg font-semibold mb-1">What's This?</h3>
-          <p className="text-gray-700 mb-4">
-            A quick, evidence-based questionnaire that spots potential health
-            risks and gives you an instant overview of your current health risk.
-            <br />
-            <br />
-            These questions guide you to wellness, not fear.
-          </p>
+              {/* Why Take It */}
+              <h3 className="text-lg font-semibold mb-1">Why Take It?</h3>
+              <ul className="list-disc pl-5 text-gray-700 mb-4">
+                <li>Insight in 5 minutes - snapshot of your current health risk.</li>
+                <li>Preventive focus - catch early warning signs before they develop.</li>
+                <li>Actionable tips - simple next steps you can start today.</li>
+              </ul>
 
-          {/* Why Take It */}
-          <h3 className="text-lg font-semibold mb-1">Why Take It?</h3>
-          <ul className="list-disc pl-5 text-gray-700 mb-4">
-            <li>Insight in 5 minutes - snapshot of your current health risk.</li>
-            <li>Preventive focus - catch early warning signs before they develop.</li>
-            <li>Actionable tips - simple next steps you can start today.</li>
-          </ul>
+              {/* Note */}
+              <p className="text-sm text-gray-600 mb-6">
+                <span className="font-semibold">Note:</span> This is not a medical
+                diagnosis and is for education purposes. Your answers stay private
+                and will be used for analysis to get you a score.
+              </p>
 
-          {/* Note */}
-          <p className="text-sm text-gray-600 mb-6">
-            <span className="font-semibold">Note:</span> This is not a medical
-            diagnosis and is for education purposes. Your answers stay private
-            and will be used for analysis to get you a score.
-          </p>
+              {/* Backend message */}
+              {backendMessage && (
+                <p className="text-green-500 text-center font-semibold mb-4">
+                  {backendMessage}
+                </p>
+              )}
 
-          {/* Backend message */}
-          {backendMessage && (
-            <p className="text-green-500 text-center font-semibold mb-4">
-              {backendMessage}
-            </p>
-          )}
-
-          {/* Start Button */}
-          <button
-            onClick={handleStart}
-            className="w-full py-3 bg-blue-100 text-blue-600 font-semibold rounded-md mb-10"
-          >
-            Let&apos;s Start
-          </button>
-        </div>
-      ) : (
-        <div className="mt-4 space-y-4">
-          {loading ? (
-            <p>Loading...</p>
-          ) : error ? (
-            <p>{error}</p>
-          ) : hraData.length > 0 ? (
-            hraData.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center p-3 border rounded-md cursor-pointer"
-                onClick={() => handleCategoryClick(item.hraName)}
+              {/* Start Button */}
+              <button
+                onClick={handleStart}
+                className="w-full py-3 bg-blue-100 text-blue-600 font-semibold rounded-md mb-10"
               >
-                <img
-                  src={BASE_URL + item.hraImage}
-                  alt={item.hraName}
-                  className="w-12 h-12 object-cover rounded mr-3"
-                />
-                <p className="text-base font-semibold">{item.hraName}</p>
-              </div>
-            ))
+                Let&apos;s Start
+              </button>
+            </div>
           ) : (
-            <p>No health risk data available.</p>
+            <div className="mt-4 space-y-4">
+              {loading ? (
+                <p>Loading...</p>
+              ) : error ? (
+                <p>{error}</p>
+              ) : hraData.length > 0 ? (
+                hraData.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center p-3 border rounded-md cursor-pointer"
+                    onClick={() => handleCategoryClick(item.hraName)}
+                  >
+                    <img
+                      src={BASE_URL + item.hraImage}
+                      alt={item.hraName}
+                      className="w-12 h-12 object-cover rounded mr-3"
+                    />
+                    <p className="text-base font-semibold">{item.hraName}</p>
+                  </div>
+                ))
+              ) : (
+                <p>No health risk data available.</p>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
-  </div>
-);
+  );
 
 };
 

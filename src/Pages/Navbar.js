@@ -56,22 +56,41 @@ const Navbar = () => {
     </div>
   );
 
+  const [showText, setShowText] = useState(true);
+
+  useEffect(() => {
+    // Function to check window width
+    const checkWidth = () => setShowText(window.innerWidth >= 375);
+
+    // Run on mount to handle initial width
+    checkWidth();
+
+    // Listen for window resize
+    window.addEventListener("resize", checkWidth);
+
+    // Clean up listener on unmount
+    return () => window.removeEventListener("resize", checkWidth);
+  }, []);
+
   return (
     <>
       {/* ✅ Top Navbar */}
       <header className="bg-white py-3 sticky top-0 z-50 shadow-md">
         <div className="container mx-auto flex justify-between items-center px-4 sm:px-6 h-16">
           {/* Logo */}
-       <div className="flex items-center gap-2">
-  <Link to="/home" className="flex items-center gap-2 no-underline">
-    <img
-      src="/logo.png"
-      alt="Logo"
-      className="w-12 h-12 object-contain"
-    />
-    <h3 className="font-bold text-xl text-gray-900">Credenthealth</h3>
-  </Link>
-</div>
+          <div className="flex items-center gap-2">
+            <Link to="/home" className="flex items-center gap-2 no-underline">
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="w-12 h-12 object-contain"
+              />
+              {showText && (
+                <h3 className="font-bold text-xl text-gray-900">Credenthealth</h3>
+              )}
+            </Link>
+          </div>
+
 
 
           {/* ✅ Right side */}
@@ -96,16 +115,16 @@ const Navbar = () => {
             </div>
 
             {/* Wallet */}
-           {walletBalance !== null && (
-        <div
-          onClick={() => navigate('/wallet')}
-          className="flex items-center gap-1 text-gray-700 bg-gray-100 px-2 py-1 rounded cursor-pointer hover:bg-gray-200 transition"
-          title="Go to Wallet"
-        >
-          <IoWalletOutline size={20} />
-          <span className="text-sm font-medium">₹{walletBalance}</span>
-        </div>
-      )}
+            {walletBalance !== null && (
+              <div
+                onClick={() => navigate('/wallet')}
+                className="flex items-center gap-1 text-gray-700 bg-gray-100 px-2 py-1 rounded cursor-pointer hover:bg-gray-200 transition"
+                title="Go to Wallet"
+              >
+                <IoWalletOutline size={20} />
+                <span className="text-sm font-medium">₹{walletBalance}</span>
+              </div>
+            )}
 
             {/* Cart with Badge */}
             <button

@@ -122,148 +122,149 @@ const AddressPage = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       <Navbar />
+      <div className="flex flex-col min-h-screen pb-16 lg:pb-0">
+        <div className="flex-grow px-4 py-6">
+          {!isFormVisible ? (
+            <>
+              {/* List Page */}
+              <h2 className="text-xl font-bold mb-6">Addresses</h2>
+              {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-      <div className="flex-grow px-4 py-6">
-        {!isFormVisible ? (
-          <>
-            {/* List Page */}
-            <h2 className="text-xl font-bold mb-6">Addresses</h2>
-            {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+              {/* Add button */}
+              <button
+                onClick={() => setIsFormVisible(true)}
+                className="flex items-center border border-blue-500 bg-white text-blue-500 py-3 px-4 rounded-lg w-full mb-6 font-medium"
+              >
+                <div className="bg-blue-500 text-white p-2 rounded-full mr-2 flex items-center justify-center">
+                  <FaPlus size={16} />
+                </div>
+                Add Address
+              </button>
 
-            {/* Add button */}
-            <button
-              onClick={() => setIsFormVisible(true)}
-              className="flex items-center border border-blue-500 bg-white text-blue-500 py-3 px-4 rounded-lg w-full mb-6 font-medium"
-            >
-              <div className="bg-blue-500 text-white p-2 rounded-full mr-2 flex items-center justify-center">
-                <FaPlus size={16} />
-              </div>
-              Add Address
-            </button>
+              {/* Addresses List */}
+              {loading && (
+                <p className="text-center text-gray-600">Loading...</p>
+              )}
+              {addresses.length === 0 && !loading && (
+                <p className="text-center text-gray-600">
+                  No addresses found.
+                </p>
+              )}
 
-            {/* Addresses List */}
-            {loading && (
-              <p className="text-center text-gray-600">Loading...</p>
-            )}
-            {addresses.length === 0 && !loading && (
-              <p className="text-center text-gray-600">
-                No addresses found.
-              </p>
-            )}
+              <div className="space-y-4">
+                {addresses.map((address) => (
+                  <div
+                    key={address._id}
+                    className="bg-white p-4 rounded-lg shadow flex justify-between items-center"
+                  >
+                    {/* Left side */}
+                    <div className="flex items-start space-x-3">
+                      <FaMapMarkerAlt size={30} className="text-blue-500" />
+                      <div>
+                        <p className="font-bold text-gray-800">
+                          {address.addressType || "Address"}
+                        </p>
+                        <p className="text-gray-600">
+                          {address.street}, {address.city}, {address.state}
+                        </p>
+                        <p className="text-gray-600">
+                          {address.country} - {address.postalCode}
+                        </p>
+                      </div>
+                    </div>
 
-            <div className="space-y-4">
-              {addresses.map((address) => (
-                <div
-                  key={address._id}
-                  className="bg-white p-4 rounded-lg shadow flex justify-between items-center"
-                >
-                  {/* Left side */}
-                  <div className="flex items-start space-x-3">
-                    <FaMapMarkerAlt size={30} className="text-blue-500" />
-                    <div>
-                      <p className="font-bold text-gray-800">
-                        {address.addressType || "Address"}
-                      </p>
-                      <p className="text-gray-600">
-                        {address.street}, {address.city}, {address.state}
-                      </p>
-                      <p className="text-gray-600">
-                        {address.country} - {address.postalCode}
-                      </p>
+                    {/* Right side - actions */}
+                    <div className="flex items-center space-x-4">
+                      <button
+                        onClick={() => handleEdit(address)}
+                        className="text-blue-500 hover:text-blue-700"
+                      >
+                        <FaEdit size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleRemove(address._id)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <FaTrash size={18} />
+                      </button>
                     </div>
                   </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Form Page */}
+              <h2 className="text-xl font-bold mb-6">
+                {editMode ? "Edit Address" : "Add Address"}
+              </h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <input
+                  type="text"
+                  name="street"
+                  value={newAddress.street}
+                  onChange={handleInputChange}
+                  placeholder="Street"
+                  className="w-full p-3 border rounded"
+                />
+                <input
+                  type="text"
+                  name="city"
+                  value={newAddress.city}
+                  onChange={handleInputChange}
+                  placeholder="City"
+                  className="w-full p-3 border rounded"
+                />
+                <input
+                  type="text"
+                  name="state"
+                  value={newAddress.state}
+                  onChange={handleInputChange}
+                  placeholder="State"
+                  className="w-full p-3 border rounded"
+                />
+                <input
+                  type="text"
+                  name="country"
+                  value={newAddress.country}
+                  onChange={handleInputChange}
+                  placeholder="Country"
+                  className="w-full p-3 border rounded"
+                />
+                <input
+                  type="text"
+                  name="postalCode"
+                  value={newAddress.postalCode}
+                  onChange={handleInputChange}
+                  placeholder="Postal Code"
+                  className="w-full p-3 border rounded"
+                />
+                <input
+                  type="text"
+                  name="addressType"
+                  value={newAddress.addressType}
+                  onChange={handleInputChange}
+                  placeholder="Address Type (Home, Office)"
+                  className="w-full p-3 border rounded"
+                />
 
-                  {/* Right side - actions */}
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={() => handleEdit(address)}
-                      className="text-blue-500 hover:text-blue-700"
-                    >
-                      <FaEdit size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleRemove(address._id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <FaTrash size={18} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Form Page */}
-            <h2 className="text-xl font-bold mb-6">
-              {editMode ? "Edit Address" : "Add Address"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="text"
-                name="street"
-                value={newAddress.street}
-                onChange={handleInputChange}
-                placeholder="Street"
-                className="w-full p-3 border rounded"
-              />
-              <input
-                type="text"
-                name="city"
-                value={newAddress.city}
-                onChange={handleInputChange}
-                placeholder="City"
-                className="w-full p-3 border rounded"
-              />
-              <input
-                type="text"
-                name="state"
-                value={newAddress.state}
-                onChange={handleInputChange}
-                placeholder="State"
-                className="w-full p-3 border rounded"
-              />
-              <input
-                type="text"
-                name="country"
-                value={newAddress.country}
-                onChange={handleInputChange}
-                placeholder="Country"
-                className="w-full p-3 border rounded"
-              />
-              <input
-                type="text"
-                name="postalCode"
-                value={newAddress.postalCode}
-                onChange={handleInputChange}
-                placeholder="Postal Code"
-                className="w-full p-3 border rounded"
-              />
-              <input
-                type="text"
-                name="addressType"
-                value={newAddress.addressType}
-                onChange={handleInputChange}
-                placeholder="Address Type (Home, Office)"
-                className="w-full p-3 border rounded"
-              />
-
-              <button
-                type="submit"
-                className="w-full bg-blue-500 text-white py-3 rounded-lg"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="w-full bg-gray-300 text-gray-700 py-3 rounded-lg mt-2"
-              >
-                Cancel
-              </button>
-            </form>
-          </>
-        )}
+                <button
+                  type="submit"
+                  className="w-full bg-blue-500 text-white py-3 rounded-lg"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="w-full bg-gray-300 text-gray-700 py-3 rounded-lg mt-2"
+                >
+                  Cancel
+                </button>
+              </form>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

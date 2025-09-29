@@ -38,3 +38,8 @@
   }
 }
 
+@media (min-width: 370px) {
+  .xs\:block {
+    display: block;
+  }
+}

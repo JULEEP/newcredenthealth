@@ -26,6 +26,7 @@ const LoginPage = () => {
         const { _id, name } = staff;
         localStorage.setItem("staffId", _id);
         localStorage.setItem("name", name);
+        sessionStorage.setItem("staff", JSON.stringify(staff));
         navigate("/home");
       }
     } catch (error) {
