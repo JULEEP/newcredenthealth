@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Navbar from "./Navbar";
-import Footer from "./Footer";
-import { FaEdit, FaTrashAlt } from "react-icons/fa"; // Import React Icons
+import { FaPlus, FaUser, FaEdit, FaTrash } from "react-icons/fa";
 
 const FamilyPage = () => {
   const [familyMembers, setFamilyMembers] = useState([]);
@@ -18,6 +17,7 @@ const FamilyPage = () => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isFormVisible, setIsFormVisible] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
 
@@ -28,12 +28,12 @@ const FamilyPage = () => {
     if (staffId) {
       // Fetch all family members
       axios
-        .get(`http://31.97.206.144:4051/api/staff/getallfamily/${staffId}`)
+        .get(`https://api.credenthealth.com/api/staff/getallfamily/${staffId}`)
         .then((response) => {
           setFamilyMembers(response.data.family_members);
           setLoading(false);
         })
-        .catch((error) => {
+        .catch(() => {
           setError("Error fetching family members");
           setLoading(false);
         });
@@ -56,28 +56,32 @@ const FamilyPage = () => {
     if (editMode && selectedMember) {
       // Update family member API call
       axios
-        .put(`http://31.97.206.144:4051/api/staff/update-family/${staffId}/${selectedMember._id}`, newFamilyMember)
+        .put(
+          `https://api.credenthealth.com/api/staff/update-family/${staffId}/${selectedMember._id}`,
+          newFamilyMember
+        )
         .then((response) => {
           const updatedFamilyMembers = familyMembers.map((member) =>
-            member._id === selectedMember._id ? response.data.family_member : member
+            member._id === selectedMember._id
+              ? response.data.family_member
+              : member
           );
           setFamilyMembers(updatedFamilyMembers);
           resetForm();
         })
-        .catch((error) => {
-          setError("Error updating family member");
-        });
+        .catch(() => setError("Error updating family member"));
     } else {
       // Add new family member API call
       axios
-        .post(`http://31.97.206.144:4051/api/staff/create-family/${staffId}`, newFamilyMember)
+        .post(
+          `https://api.credenthealth.com/api/staff/create-family/${staffId}`,
+          newFamilyMember
+        )
         .then((response) => {
           setFamilyMembers([...familyMembers, response.data.family_member]);
           resetForm();
         })
-        .catch((error) => {
-          setError("Error adding family member");
-        });
+        .catch(() => setError("Error adding family member"));
     }
   };
 
@@ -94,6 +98,7 @@ const FamilyPage = () => {
     });
     setEditMode(false);
     setSelectedMember(null);
+    setIsFormVisible(false); // back to list
   };
 
   const handleEdit = (member) => {
@@ -109,148 +114,208 @@ const FamilyPage = () => {
     });
     setEditMode(true);
     setSelectedMember(member);
+    setIsFormVisible(true); // show form
   };
 
   const handleRemove = (memberId) => {
-    // Add the API call for removing family member
     axios
-      .delete(`http://31.97.206.144:4051/api/staff/remove-family/${staffId}/${memberId}`)
+      .delete(
+        `https://api.credenthealth.com/api/staff/remove-family/${staffId}/${memberId}`
+      )
       .then(() => {
-        setFamilyMembers(familyMembers.filter((member) => member._id !== memberId));
+        setFamilyMembers(
+          familyMembers.filter((member) => member._id !== memberId)
+        );
       })
-      .catch((error) => {
-        setError("Error removing family member");
-      });
+      .catch(() => setError("Error removing family member"));
   };
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <div className="flex-grow bg-gray-100 py-10">
-        <div className="bg-white p-8 rounded-lg w-full max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-            Manage Family Members
-          </h2>
-          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+  const genderOptions = ["Male", "Female", "Other"];
+  const relationOptions = [
+    "Father",
+    "Mother",
+    "Brother",
+    "Sister",
+    "Spouse",
+    "Friend",
+  ];
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Full Name */}
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-100">
+      <Navbar />
+
+      <div className="flex-grow px-4 py-6">
+        {!isFormVisible ? (
+          <>
+            {/* List Page */}
+            <h2 className="text-xl font-bold mb-6">Family Members</h2>
+            {error && (
+              <p className="text-red-500 text-center mb-4">{error}</p>
+            )}
+
+            {/* Add button */}
+            <button
+              onClick={() => setIsFormVisible(true)}
+              className="flex items-center border border-blue-500 bg-white text-blue-500 py-3 px-4 rounded-lg w-full mb-6 font-medium"
+            >
+              {/* Icon with blue background */}
+              <div className="bg-blue-500 text-white p-2 rounded-full mr-2 flex items-center justify-center">
+                <FaPlus size={16} />
+              </div>
+              Add your family members
+            </button>
+
+
+            {/* Members List */}
+            {loading && (
+              <p className="text-center text-gray-600">Loading...</p>
+            )}
+            {familyMembers.length === 0 && !loading && (
+              <p className="text-center text-gray-600">
+                No family members found.
+              </p>
+            )}
+
+            <div className="space-y-4">
+              {familyMembers.map((member) => (
+                <div
+                  key={member._id}
+                  className="bg-white p-4 rounded-lg shadow flex justify-between items-center"
+                >
+                  {/* Left side - person icon + details */}
+                  <div className="flex items-center space-x-3">
+                    <FaUser size={30} className="text-blue-500" />
+                    <div>
+                      <p className="font-bold text-gray-800">
+                        {member.fullName}
+                      </p>
+                      <p className="text-gray-600">
+                        {member.relation} | Age: {member.age} | {member.gender}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right side - actions */}
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={() => handleEdit(member)}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      <FaEdit size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleRemove(member._id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTrash size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Form Page */}
+            <h2 className="text-xl font-bold mb-6">
+              {editMode ? "Edit Family Member" : "Add Your Family Members"}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 type="text"
                 name="fullName"
                 value={newFamilyMember.fullName}
                 onChange={handleInputChange}
                 placeholder="Full Name"
-                className="p-2 border border-gray-300 rounded-md w-full"
+                className="w-full p-3 border rounded"
               />
-              {/* Mobile Number */}
+              <select
+                name="relation"
+                value={newFamilyMember.relation}
+                onChange={handleInputChange}
+                className="w-full p-3 border rounded"
+              >
+                <option value="">Select One</option>
+                {relationOptions.map((relation) => (
+                  <option key={relation} value={relation}>
+                    {relation}
+                  </option>
+                ))}
+              </select>
               <input
                 type="text"
                 name="mobileNumber"
                 value={newFamilyMember.mobileNumber}
                 onChange={handleInputChange}
                 placeholder="Mobile Number"
-                className="p-2 border border-gray-300 rounded-md w-full"
+                className="w-full p-3 border rounded"
               />
-              {/* Age */}
-              <input
-                type="number"
-                name="age"
-                value={newFamilyMember.age}
-                onChange={handleInputChange}
-                placeholder="Age"
-                className="p-2 border border-gray-300 rounded-md w-full"
-              />
-              {/* Gender */}
-              <input
-                type="text"
-                name="gender"
-                value={newFamilyMember.gender}
-                onChange={handleInputChange}
-                placeholder="Gender"
-                className="p-2 border border-gray-300 rounded-md w-full"
-              />
-              {/* Date of Birth */}
+              <div className="flex space-x-4">
+                <input
+                  type="number"
+                  name="age"
+                  value={newFamilyMember.age}
+                  onChange={handleInputChange}
+                  placeholder="Age"
+                  className="w-1/2 p-3 border rounded"
+                />
+                <select
+                  name="gender"
+                  value={newFamilyMember.gender}
+                  onChange={handleInputChange}
+                  className="w-1/2 p-3 border rounded"
+                >
+                  <option value="">Gender</option>
+                  {genderOptions.map((gender) => (
+                    <option key={gender} value={gender}>
+                      {gender}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <input
                 type="date"
                 name="DOB"
                 value={newFamilyMember.DOB}
                 onChange={handleInputChange}
-                placeholder="Date of Birth"
-                className="p-2 border border-gray-300 rounded-md w-full"
+                className="w-full p-3 border rounded"
               />
-              {/* Height */}
-              <input
-                type="number"
-                name="height"
-                value={newFamilyMember.height}
-                onChange={handleInputChange}
-                placeholder="Height (cm)"
-                className="p-2 border border-gray-300 rounded-md w-full"
-              />
-              {/* Weight */}
-              <input
-                type="number"
-                name="weight"
-                value={newFamilyMember.weight}
-                onChange={handleInputChange}
-                placeholder="Weight (kg)"
-                className="p-2 border border-gray-300 rounded-md w-full"
-              />
-              {/* Relation */}
-              <input
-                type="text"
-                name="relation"
-                value={newFamilyMember.relation}
-                onChange={handleInputChange}
-                placeholder="Relation"
-                className="p-2 border border-gray-300 rounded-md w-full"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300 mt-4"
-            >
-              {editMode ? "Update Family Member" : "Add Family Member"}
-            </button>
-          </form>
+              <div className="flex space-x-4">
+                <input
+                  type="number"
+                  name="height"
+                  value={newFamilyMember.height}
+                  onChange={handleInputChange}
+                  placeholder="Height (cm)"
+                  className="w-1/2 p-3 border rounded"
+                />
+                <input
+                  type="number"
+                  name="weight"
+                  value={newFamilyMember.weight}
+                  onChange={handleInputChange}
+                  placeholder="Weight (kg)"
+                  className="w-1/2 p-3 border rounded"
+                />
+              </div>
 
-          {loading && <p className="text-center text-gray-600 mt-6">Loading family members...</p>}
-          {familyMembers.length === 0 && !loading && (
-            <p className="text-center text-gray-600 mt-6">No family members found.</p>
-          )}
-
-          <div className="mt-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Family Members</h3>
-            <ul className="space-y-4">
-              {familyMembers.map((member, index) => (
-                <li key={index} className="flex justify-between items-center border-b pb-4">
-                  <div>
-                    <p className="font-semibold text-gray-800">{member.fullName}</p>
-                    <p className="text-sm text-gray-600">Relation: {member.relation}</p>
-                  </div>
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => handleEdit(member)} // Edit button logic
-                      className="text-blue-500 hover:text-blue-700 mr-4"
-                    >
-                      <FaEdit /> {/* Edit icon */}
-                    </button>
-                    <button
-                      onClick={() => handleRemove(member._id)} // Remove button logic
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <FaTrashAlt /> {/* Trash icon */}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+              <button
+                type="submit"
+                className="w-full bg-blue-500 text-white py-3 rounded-lg"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="w-full bg-gray-300 text-gray-700 py-3 rounded-lg mt-2"
+              >
+                Cancel
+              </button>
+            </form>
+          </>
+        )}
       </div>
-      <Footer />
     </div>
   );
 };

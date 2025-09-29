@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Navbar from "./Navbar";
-import Footer from "./Footer";
-import { FaEdit, FaTrashAlt } from "react-icons/fa"; // Import React Icons
+import { FaEdit, FaTrash, FaPlus, FaMapMarkerAlt } from "react-icons/fa";
 
 const AddressPage = () => {
   const [addresses, setAddresses] = useState([]);
@@ -16,22 +15,22 @@ const AddressPage = () => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false); // Flag for edit mode
-  const [selectedAddress, setSelectedAddress] = useState(null); // To store the selected address
+  const [editMode, setEditMode] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [isFormVisible, setIsFormVisible] = useState(false);
 
-  // Retrieve staffId from localStorage
   const staffId = localStorage.getItem("staffId");
 
+  // Fetch addresses
   useEffect(() => {
     if (staffId) {
-      // Fetch all addresses for the staff member
       axios
-        .get(`http://31.97.206.144:4051/api/staff/getaddresses/${staffId}`)
+        .get(`https://api.credenthealth.com/api/staff/getaddresses/${staffId}`)
         .then((response) => {
           setAddresses(response.data.addresses);
           setLoading(false);
         })
-        .catch((error) => {
+        .catch(() => {
           setError("Error fetching addresses");
           setLoading(false);
         });
@@ -41,7 +40,6 @@ const AddressPage = () => {
     }
   }, [staffId]);
 
-  // Handle input change for new or edited address
   const handleInputChange = (e) => {
     setNewAddress({
       ...newAddress,
@@ -49,42 +47,39 @@ const AddressPage = () => {
     });
   };
 
-  // Handle form submission to add or update an address
   const handleSubmit = (e) => {
     e.preventDefault();
 
     if (editMode && selectedAddress) {
-      // Update address API call
       axios
         .put(
-          `http://31.97.206.144:4051/api/staff/update-address/${staffId}/${selectedAddress._id}`,
+          `https://api.credenthealth.com/api/staff/update-address/${staffId}/${selectedAddress._id}`,
           newAddress
         )
         .then((response) => {
           const updatedAddresses = addresses.map((address) =>
-            address._id === selectedAddress._id ? response.data.address : address
+            address._id === selectedAddress._id
+              ? response.data.address
+              : address
           );
           setAddresses(updatedAddresses);
           resetForm();
         })
-        .catch((error) => {
-          setError("Error updating address");
-        });
+        .catch(() => setError("Error updating address"));
     } else {
-      // Add new address API call
       axios
-        .post(`http://31.97.206.144:4051/api/staff/create-address/${staffId}`, newAddress)
+        .post(
+          `https://api.credenthealth.com/api/staff/create-address/${staffId}`,
+          newAddress
+        )
         .then((response) => {
           setAddresses([...addresses, response.data.address]);
           resetForm();
         })
-        .catch((error) => {
-          setError("Error adding address");
-        });
+        .catch(() => setError("Error adding address"));
     }
   };
 
-  // Reset the form to initial state
   const resetForm = () => {
     setNewAddress({
       street: "",
@@ -94,11 +89,11 @@ const AddressPage = () => {
       postalCode: "",
       addressType: "",
     });
-    setEditMode(false); // Exit edit mode
-    setSelectedAddress(null); // Clear selected address
+    setEditMode(false);
+    setSelectedAddress(null);
+    setIsFormVisible(false);
   };
 
-  // Set form data for editing
   const handleEdit = (address) => {
     setNewAddress({
       street: address.street,
@@ -109,133 +104,167 @@ const AddressPage = () => {
       addressType: address.addressType,
     });
     setEditMode(true);
-    setSelectedAddress(address); // Store selected address for editing
+    setSelectedAddress(address);
+    setIsFormVisible(true);
   };
 
-  // Handle address removal
   const handleRemove = (addressId) => {
     axios
-      .delete(`http://31.97.206.144:4051/api/staff/remove-address/${staffId}/${addressId}`)
+      .delete(
+        `https://api.credenthealth.com/api/staff/remove-address/${staffId}/${addressId}`
+      )
       .then(() => {
-        setAddresses(addresses.filter((address) => address._id !== addressId));
+        setAddresses(addresses.filter((a) => a._id !== addressId));
       })
-      .catch((error) => {
-        setError("Error removing address");
-      });
+      .catch(() => setError("Error removing address"));
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-100">
       <Navbar />
-      <div className="flex-grow bg-gray-100 py-10">
-        <div className="bg-white p-8 rounded-lg w-full max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-            Manage Addresses
-          </h2>
-          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Street */}
+      <div className="flex-grow px-4 py-6">
+        {!isFormVisible ? (
+          <>
+            {/* List Page */}
+            <h2 className="text-xl font-bold mb-6">Addresses</h2>
+            {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+
+            {/* Add button */}
+            <button
+              onClick={() => setIsFormVisible(true)}
+              className="flex items-center border border-blue-500 bg-white text-blue-500 py-3 px-4 rounded-lg w-full mb-6 font-medium"
+            >
+              <div className="bg-blue-500 text-white p-2 rounded-full mr-2 flex items-center justify-center">
+                <FaPlus size={16} />
+              </div>
+              Add Address
+            </button>
+
+            {/* Addresses List */}
+            {loading && (
+              <p className="text-center text-gray-600">Loading...</p>
+            )}
+            {addresses.length === 0 && !loading && (
+              <p className="text-center text-gray-600">
+                No addresses found.
+              </p>
+            )}
+
+            <div className="space-y-4">
+              {addresses.map((address) => (
+                <div
+                  key={address._id}
+                  className="bg-white p-4 rounded-lg shadow flex justify-between items-center"
+                >
+                  {/* Left side */}
+                  <div className="flex items-start space-x-3">
+                    <FaMapMarkerAlt size={30} className="text-blue-500" />
+                    <div>
+                      <p className="font-bold text-gray-800">
+                        {address.addressType || "Address"}
+                      </p>
+                      <p className="text-gray-600">
+                        {address.street}, {address.city}, {address.state}
+                      </p>
+                      <p className="text-gray-600">
+                        {address.country} - {address.postalCode}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right side - actions */}
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={() => handleEdit(address)}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      <FaEdit size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleRemove(address._id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTrash size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Form Page */}
+            <h2 className="text-xl font-bold mb-6">
+              {editMode ? "Edit Address" : "Add Address"}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 type="text"
                 name="street"
                 value={newAddress.street}
                 onChange={handleInputChange}
                 placeholder="Street"
-                className="p-2 border border-gray-300 rounded-md w-full"
+                className="w-full p-3 border rounded"
               />
-              {/* City */}
               <input
                 type="text"
                 name="city"
                 value={newAddress.city}
                 onChange={handleInputChange}
                 placeholder="City"
-                className="p-2 border border-gray-300 rounded-md w-full"
+                className="w-full p-3 border rounded"
               />
-              {/* State */}
               <input
                 type="text"
                 name="state"
                 value={newAddress.state}
                 onChange={handleInputChange}
                 placeholder="State"
-                className="p-2 border border-gray-300 rounded-md w-full"
+                className="w-full p-3 border rounded"
               />
-              {/* Country */}
               <input
                 type="text"
                 name="country"
                 value={newAddress.country}
                 onChange={handleInputChange}
                 placeholder="Country"
-                className="p-2 border border-gray-300 rounded-md w-full"
+                className="w-full p-3 border rounded"
               />
-              {/* Postal Code */}
               <input
                 type="text"
                 name="postalCode"
                 value={newAddress.postalCode}
                 onChange={handleInputChange}
                 placeholder="Postal Code"
-                className="p-2 border border-gray-300 rounded-md w-full"
+                className="w-full p-3 border rounded"
               />
-              {/* Address Type */}
               <input
                 type="text"
                 name="addressType"
                 value={newAddress.addressType}
                 onChange={handleInputChange}
-                placeholder="Address Type (e.g. Home, Office)"
-                className="p-2 border border-gray-300 rounded-md w-full"
+                placeholder="Address Type (Home, Office)"
+                className="w-full p-3 border rounded"
               />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300 mt-4"
-            >
-              {editMode ? "Update Address" : "Add Address"}
-            </button>
-          </form>
 
-          {loading && <p className="text-center text-gray-600 mt-6">Loading addresses...</p>}
-          {addresses.length === 0 && !loading && (
-            <p className="text-center text-gray-600 mt-6">No addresses found.</p>
-          )}
-
-          <div className="mt-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Addresses</h3>
-            <ul className="space-y-4">
-              {addresses.map((address, index) => (
-                <li key={index} className="flex justify-between items-center border-b pb-4">
-                  <div>
-                    <p className="font-semibold text-gray-800">{address.street}</p>
-                    <p className="text-sm text-gray-600">
-                      {address.city}, {address.state}, {address.country} - {address.addressType}
-                    </p>
-                  </div>
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => handleEdit(address)} // Edit button logic
-                      className="text-blue-500 hover:text-blue-700 mr-4"
-                    >
-                      <FaEdit /> {/* Edit icon */}
-                    </button>
-                    <button
-                      onClick={() => handleRemove(address._id)} // Remove button logic
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <FaTrashAlt /> {/* Trash icon */}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+              <button
+                type="submit"
+                className="w-full bg-blue-500 text-white py-3 rounded-lg"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="w-full bg-gray-300 text-gray-700 py-3 rounded-lg mt-2"
+              >
+                Cancel
+              </button>
+            </form>
+          </>
+        )}
       </div>
-      <Footer />
     </div>
   );
 };

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';  // Adjust path if necessary
-import Footer from './Footer';  // Adjust path if necessary
 
 const LabCategoryPage = () => {
   const navigate = useNavigate();
@@ -14,7 +13,7 @@ const LabCategoryPage = () => {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gray-50 min-h-screen pb-20">
       <Navbar />
 
       <div className="py-12 px-4 sm:px-6 lg:px-8">
@@ -46,8 +45,6 @@ const LabCategoryPage = () => {
           ))}
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 };

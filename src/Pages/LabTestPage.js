@@ -1,31 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaCartPlus } from 'react-icons/fa'; // Importing icon
-import { useNavigate } from 'react-router-dom'; // For navigation
-import Navbar from './Navbar';  // Adjust path if necessary
-import Footer from './Footer';  // Adjust path if necessary
+import { FaCartPlus, FaCheck, FaChevronDown, FaChevronUp, FaPlus, FaSearch } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import Navbar from './Navbar';
+import Footer from './Footer';
 
 const LabTestPage = () => {
   const [tests, setTests] = useState([]);
+  const [filteredTests, setFilteredTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
-  const [selectedTest, setSelectedTest] = useState(null); // Selected test for modal
-  const navigate = useNavigate(); // Hook to navigate to other pages
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTest, setSelectedTest] = useState(null);
+  const [openTestId, setOpenTestId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Retrieve staffId from localStorage
+  const navigate = useNavigate();
   const staffId = localStorage.getItem('staffId');
 
   useEffect(() => {
     const fetchTests = async () => {
       try {
-        const response = await axios.get('http://31.97.206.144:4051/api/admin/alltests');
+        const response = await axios.get('https://api.credenthealth.com/api/admin/alltests');
         if (response.data && response.data.tests) {
           setTests(response.data.tests);
+          setFilteredTests(response.data.tests);
         } else {
           setError('No tests data found');
         }
       } catch (err) {
+        console.error("Error fetching tests:", err);
         setError('Error fetching data');
       } finally {
         setLoading(false);
@@ -35,14 +39,22 @@ const LabTestPage = () => {
     fetchTests();
   }, []);
 
+  // Filter tests based on search
+  useEffect(() => {
+    const filtered = tests.filter((test) =>
+      test.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredTests(filtered);
+  }, [searchTerm, tests]);
+
   const openModal = (test) => {
-    setSelectedTest(test); // Set the selected test for the modal
-    setIsModalOpen(true);  // Open the modal
+    setSelectedTest(test);
+    setIsModalOpen(true);
   };
 
   const closeModal = () => {
-    setIsModalOpen(false);  // Close the modal
-    setSelectedTest(null);   // Reset selected test
+    setIsModalOpen(false);
+    setSelectedTest(null);
   };
 
   const addToCart = async () => {
@@ -53,17 +65,14 @@ const LabTestPage = () => {
 
     try {
       const response = await axios.post(
-        `http://31.97.206.144:4051/api/staff/addcart/${staffId}`,
-        {
-          itemId: selectedTest._id,
-          action: 'inc', // 'inc' means add to cart
-        }
+        `https://api.credenthealth.com/api/staff/addcart/${staffId}`,
+        { itemId: selectedTest._id, action: 'inc' }
       );
 
       if (response.status === 200) {
         alert('Item added to cart successfully!');
-        closeModal(); // Close the modal after adding to cart
-        navigate('/cart'); // Redirect to cart page after successful addition
+        closeModal();
+        navigate('/cart');
       } else {
         alert('Failed to add item to cart');
       }
@@ -73,74 +82,135 @@ const LabTestPage = () => {
     }
   };
 
-  return (
-    <div className="bg-gray-50 min-h-screen">
-      <Navbar /> {/* Add Navbar here */}
+  const toggleDetails = (testId) => {
+    setOpenTestId(openTestId === testId ? null : testId);
+  };
 
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-          Lab Tests
-        </h1>
+  return (
+    <div className="bg-gray-50 min-h-screen flex flex-col">
+      <Navbar />
+
+      <main className="py-6 px-4 sm:px-6 lg:px-8 flex-1">
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-4">Lab Tests</h1>
+
+        {/* Search Box */}
+        <div className="flex justify-end mb-6">
+          <div className="relative w-full max-w-md mb-6">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search lab tests..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+        </div>
 
         {loading && <p className="text-center text-lg text-gray-600">Loading tests...</p>}
         {error && <p className="text-center text-lg text-red-500">{error}</p>}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-          {tests.length > 0 ? (
-            tests.map((test) => (
-              <div key={test._id} className="bg-white p-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                {/* Test Name */}
-                <h2 className="text-2xl font-semibold text-gray-800 mb-2">{test.name}</h2>
+        {/* Popular Tests Heading */}
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Popular Tests</h2>
 
-                {/* Test Price */}
-                <p className="text-lg text-gray-600 mb-2">Price: ₹{test.price}</p>
-
-                {/* Test Category */}
-                <p className="text-sm text-gray-500 mb-2">Category: {test.category}</p>
-
-                {/* Description */}
-                <p className="text-sm text-gray-500 mb-4">{test.description}</p>
-
-                {/* Additional Info */}
-                <div className="mb-4">
-                  <p className="text-sm text-gray-500"><strong>Fasting Required:</strong> {test.fastingRequired ? 'Yes' : 'No'}</p>
-                  <p className="text-sm text-gray-500"><strong>Home Collection:</strong> {test.homeCollectionAvailable ? 'Available' : 'Not Available'}</p>
-                  <p className="text-sm text-gray-500"><strong>Report in 24hrs:</strong> {test.reportIn24Hrs ? 'Yes' : 'No'}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTests.length > 0 ? (
+            filteredTests.map((test) => (
+              <div
+                key={test._id}
+                className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 transition-all duration-300"
+              >
+                {/* Top row: Name + Price */}
+                <div className="flex justify-between items-center mb-1">
+                  <h2 className="text-base font-semibold text-gray-800 relative group pb-1">
+                    {test.name}
+                    <span className="absolute left-0 bottom-0 mt-2 h-1 bg-blue-500 rounded w-1/4 animate-underline"></span>
+                  </h2>
+                  <span className="text-base font-semibold text-gray-800">₹{test.price}</span>
                 </div>
 
-                {/* Add to Cart Icon */}
-                <button 
-                  className="text-white bg-[#2E67F6] p-3 rounded-full hover:bg-[#2559cc] transition duration-300"
-                  onClick={() => openModal(test)} // Open modal for adding to cart
-                >
-                  <FaCartPlus size={20} />
-                </button>
+                {/* Small details */}
+                <div className="flex justify-between text-xs text-gray-500 mb-2">
+                  <span>{test.fastingRequired ? 'Fasting Required' : 'No Fasting'}</span>
+                  <span>Onwards</span>
+                </div>
+
+                {/* Home collection badge */}
+                {test.homeCollectionAvailable && (
+                  <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full mb-2">
+                    <FaCheck className="inline mr-1" /> Home Collection Available
+                  </span>
+                )}
+
+                {/* More info / Book Now */}
+                <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                  <button
+                    className="flex items-center gap-1 font-medium hover:text-gray-700 transition-colors"
+                    onClick={() => toggleDetails(test._id)}
+                  >
+                    {openTestId === test._id ? <FaChevronUp /> : <FaChevronDown />}
+                    {openTestId === test._id ? "Less info" : "More info"}
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="text-white bg-[#2E67F6] px-3 py-2 rounded hover:bg-[#2559cc] transition-colors"
+                      onClick={() => openModal(test)}
+                    >
+                      Book Now
+                    </button>
+                    <div className="bg-blue-100 text-[#2E67F6] rounded-full w-7 h-7 flex items-center justify-center">
+                      <FaPlus className="w-4 h-4" onClick={() => openModal(test)} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description / Instruction */}
+                {openTestId === test._id && (
+                  <div className="mt-2 p-3 rounded border border-blue-100">
+                    {test.description && (
+                      <div className="mb-2">
+                        <h3 className="text-sm font-semibold text-gray-800 mb-1">Description</h3>
+                        <p className="text-sm text-gray-700 bg-blue-50 p-2 rounded">{test.description}</p>
+                      </div>
+                    )}
+                    {test.instruction && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-800 mb-1">Instructions</h3>
+                        <p className="text-sm text-gray-700 bg-blue-50 p-2 rounded">{test.instruction}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
               </div>
             ))
           ) : (
-            <p className="text-center text-lg text-gray-500">No lab tests available.</p>
+            <p className="text-center text-lg text-gray-500 col-span-full">No lab tests available.</p>
           )}
         </div>
-      </div>
+      </main>
 
       {/* Modal for Add to Cart Confirmation */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-lg w-96">
+      {isModalOpen && selectedTest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-md">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Add to Cart</h2>
-            <p className="text-lg text-gray-600 mb-4">Are you sure you want to add <strong>{selectedTest.name}</strong> to your cart?</p>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to add <strong>{selectedTest.name}</strong> to your cart?
+            </p>
 
-            <div className="flex justify-between">
-              <button 
-                className="text-white bg-gray-600 p-3 rounded-full hover:bg-gray-500 transition duration-300"
-                onClick={closeModal} // Close modal
+            <div className="flex justify-between space-x-4">
+              <button
+                className="flex-1 text-white bg-gray-600 p-3 rounded-full hover:bg-gray-500 transition-colors"
+                onClick={closeModal}
               >
                 Cancel
               </button>
 
-              <button 
-                className="text-white bg-[#2E67F6] p-3 rounded-full hover:bg-[#2559cc] transition duration-300"
-                onClick={addToCart} // Add test to cart
+              <button
+                className="flex-1 text-white bg-[#2E67F6] p-3 rounded-full hover:bg-[#2559cc] transition-colors"
+                onClick={addToCart}
               >
                 Confirm
               </button>
@@ -149,7 +219,7 @@ const LabTestPage = () => {
         </div>
       )}
 
-      <Footer /> {/* Add Footer here */}
+      <Footer />
     </div>
   );
 };

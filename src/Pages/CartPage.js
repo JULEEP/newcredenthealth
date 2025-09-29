@@ -2,23 +2,22 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar";
-import Footer from "./Footer";
+import { FaTrash, FaHome } from "react-icons/fa";
 
 const CartPage = () => {
   const [cartItems, setCartItems] = useState([]);
   const [grandTotal, setGrandTotal] = useState(0);
-  const [loading, setLoading] = useState(true); 
-  const [error, setError] = useState(""); 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Get staffId from localStorage
   const staffId = localStorage.getItem("staffId");
 
   useEffect(() => {
     if (staffId) {
-      setLoading(true); 
+      setLoading(true);
       axios
-        .get(`http://31.97.206.144:4051/api/staff/mycart/${staffId}`)
+        .get(`https://api.credenthealth.com/api/staff/mycart/${staffId}`)
         .then((response) => {
           if (response.data.items && response.data.items.length > 0) {
             setCartItems(response.data.items);
@@ -29,9 +28,9 @@ const CartPage = () => {
           }
           setLoading(false);
         })
-        .catch((error) => {
+        .catch(() => {
           setError("Error fetching cart data");
-          setLoading(false); 
+          setLoading(false);
         });
     } else {
       setError("No staffId found in localStorage");
@@ -39,69 +38,115 @@ const CartPage = () => {
     }
   }, [staffId]);
 
-  // Navigate to Diagnostics Page on Checkout
+  const handleDeleteItem = (itemId) => {
+    if (staffId) {
+      axios
+        .delete(`https://api.credenthealth.com/api/staff/deletecart/${staffId}`, {
+          data: { itemId },
+        })
+        .then((response) => {
+          setCartItems(response.data.items);
+          setGrandTotal(response.data.grandTotal);
+        })
+        .catch(() => {
+          setError("Error removing item from cart");
+        });
+    }
+  };
+
   const handleRedirect = () => {
-    navigate("/diagnostics"); // Redirect to diagnostics page
+    navigate("/diagnostics");
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="bg-white min-h-screen flex flex-col pb-20">
       <Navbar />
-      <div className="flex-grow bg-gray-100 py-10">
-        <div className="bg-white p-8 rounded-lg w-96 mx-auto">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">My Cart</h2>
-          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-          {loading && <p className="text-center text-gray-600">Loading...</p>}
-          {cartItems.length === 0 && !loading && (
-            <div className="flex flex-col items-center justify-center">
-              <div className="empty-cart-container">
-                <img
-                  src="https://img.freepik.com/premium-vector/shopping-cart-with-cross-mark-wireless-paymant-icon-shopping-bag-failure-paymant-sign-online-shopping-vector_662353-912.jpg"
-                  alt="Empty Cart"
-                  className="w-48 h-48"
-                />
-                <p className="text-xl text-gray-600 mt-4">Your cart is empty!</p>
-              </div>
-              <button
-                onClick={handleRedirect}
-                className="mt-4 p-3 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition duration-300"
+
+      <button
+        onClick={() => window.history.back()} // ya navigate(-1) use kar sakte ho agar react-router use ho raha hai
+        className="mr-2 p-1 rounded-full hover:bg-gray-200 transition-colors"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6 text-gray-700"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M10 19l-7-7m0 0l7-7m-7 7h18"
+          />
+        </svg>
+      </button>
+
+      <div className="flex-grow px-4 py-4">
+        <h2 className="text-xl font-semibold mb-4">Cart</h2>
+
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {loading && <p className="text-center text-gray-600">Loading...</p>}
+
+        {cartItems.length === 0 && !loading && (
+          <div className="text-center text-gray-500">Your cart is empty.</div>
+        )}
+
+        {cartItems.length > 0 && (
+          <div className="space-y-4">
+            {cartItems.map((item, index) => (
+              <div
+                key={index}
+                className="bg-white border rounded-lg shadow p-4 relative"
               >
-                Go to Home
-              </button>
-            </div>
-          )}
-          {cartItems.length > 0 && (
-            <div>
-              <ul className="space-y-4">
-                {cartItems.map((item, index) => (
-                  <li key={index} className="flex justify-between items-center border-b pb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">{item.title}</h3>
-                      <p className="text-sm text-gray-600">Fasting Required: {item.fastingRequired ? 'Yes' : 'No'}</p>
-                      <p className="text-sm text-gray-600">Home Collection: {item.homeCollectionAvailable ? 'Yes' : 'No'}</p>
-                      <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
-                    </div>
-                    <span className="text-lg font-bold text-gray-800">₹{item.totalPayable}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-6 flex justify-between items-center font-semibold text-lg">
-                <p>Total</p>
-                <p>₹{grandTotal}</p>
-              </div>
-              <div className="mt-6 text-center">
+                {/* Title + Price */}
+                <div className="flex justify-between items-start">
+                  <h3 className="font-bold text-gray-800">{item.title}</h3>
+                  <span className="font-semibold text-gray-900">
+                    ₹{item.totalPayable}
+                  </span>
+                </div>
+
+                {/* Fasting Required */}
+                <p className="text-sm text-gray-600 underline mt-1">
+                  {item.fastingRequired ? "Fasting Required" : "No Fasting"}
+                </p>
+
+                {/* Home Collection */}
+                {item.homeCollectionAvailable && (
+                  <div className="mt-3 inline-flex items-center bg-green-100 text-green-700 text-sm px-3 py-1 rounded-lg">
+                    <FaHome className="mr-2 text-green-600" /> {/* Home icon instead of check circle */}
+                  </div>
+                )}
+
+                {/* Remove Button */}
                 <button
-                  onClick={handleRedirect} // Navigate to diagnostics page
-                  className="p-3 bg-[#2E67F6] text-white font-semibold rounded-md hover:bg-[#2559cc] transition duration-300"
+                  onClick={() => handleDeleteItem(item.itemId)}
+                  className="absolute bottom-3 right-3 flex items-center text-blue-600 border border-blue-400 px-3 py-1 rounded-lg text-sm hover:bg-blue-50"
                 >
-                  Proceed to Checkout
+                  <FaTrash className="mr-1" /> Remove
                 </button>
               </div>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
-      <Footer />
+
+      {/* Bottom Bar */}
+      {cartItems.length > 0 && (
+        <div className="bg-white border-t px-4 py-3">
+          <div className="flex justify-between items-center font-semibold text-gray-800 mb-3">
+            <p>Total Payable</p>
+            <p className="text-blue-600">₹{grandTotal.toFixed(2)}</p>
+          </div>
+          <button
+            onClick={handleRedirect}
+            className="w-full bg-[#2E67F6] text-white py-3 rounded-lg font-semibold hover:bg-[#2559cc]"
+          >
+            Proceed
+          </button>
+        </div>
+      )}
     </div>
   );
 };

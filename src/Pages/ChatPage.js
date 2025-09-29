@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
+import Navbar from './Navbar';
 
 // Replace with your actual backend URL
-const SOCKET_URL = 'http://31.97.206.144:4051';
+const SOCKET_URL = 'https://api.credenthealth.com';
 const socket = io(SOCKET_URL);
 
 const ChatPage = () => {
@@ -40,39 +41,45 @@ const ChatPage = () => {
     setStaffId(storedStaffId);
   }, []);
 
-  // Fetch the doctors based on staff's booking
-  useEffect(() => {
-    const fetchDoctors = async () => {
-      if (!staffId) return;
+// Fetch the doctors based on staff's booking
+useEffect(() => {
+  const fetchDoctors = async () => {
+    if (!staffId) return;
 
-      try {
-        const response = await axios.get(
-          `http://31.97.206.144:4051/api/staff/mybookings/${staffId}`
-        );
+    try {
+      const response = await axios.get(
+        `https://api.credenthealth.com/api/staff/mybookings/${staffId}`
+      );
 
-        if (response.data.success && response.data.bookings.length > 0) {
-          // Extract unique doctors from bookings
-          const uniqueDoctors = response.data.bookings.reduce((acc, booking) => {
-            const doctor = booking.doctorId;
-            if (!acc.find(d => d._id === doctor._id)) {
-              acc.push(doctor);
-            }
-            return acc;
-          }, []);
+      console.log('Doctors API Response:', response.data); // Add this for debugging
+
+      if (response.data.success && response.data.bookings.length > 0) {
+        // Extract unique doctors from bookings
+        const uniqueDoctors = response.data.bookings.reduce((acc, booking) => {
+          const doctor = booking.doctorId;
           
-          setDoctors(uniqueDoctors);
-        } else {
-          setError('No doctors found for this staff.');
-        }
-      } catch (err) {
-        setError('Error fetching doctors.');
-      } finally {
-        setDoctorsLoading(false);
+          // Check if doctor exists and has valid _id
+          if (doctor && doctor._id && !acc.find(d => d._id === doctor._id)) {
+            acc.push(doctor);
+          }
+          return acc;
+        }, []);
+        
+        console.log('Extracted doctors:', uniqueDoctors); // Add this for debugging
+        setDoctors(uniqueDoctors);
+      } else {
+        setError('No doctors found for this staff.');
       }
-    };
+    } catch (err) {
+      console.error('Error fetching doctors:', err); // Add detailed error logging
+      setError('Error fetching doctors: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setDoctorsLoading(false);
+    }
+  };
 
-    fetchDoctors();
-  }, [staffId]);
+  fetchDoctors();
+}, [staffId]);
 
   // Select a doctor to chat with
   const handleSelectDoctor = (doctor) => {
@@ -89,7 +96,7 @@ const ChatPage = () => {
     const fetchChatHistory = async () => {
       try {
         const response = await axios.get(
-          `http://31.97.206.144:4051/api/staff/getchat/${staffId}/${doctorId}`
+          `https://api.credenthealth.com/api/staff/getchat/${staffId}/${doctorId}`
         );
 
         if (response.data.success) {
@@ -149,7 +156,7 @@ const ChatPage = () => {
 
       try {
         const response = await axios.post(
-          `http://31.97.206.144:4051/api/staff/sendchat/${staffId}/${doctorId}`,
+          `https://api.credenthealth.com/api/staff/sendchat/${staffId}/${doctorId}`,
           formData,
           { headers: { 'Content-Type': 'multipart/form-data' } }
         );
@@ -169,7 +176,7 @@ const ChatPage = () => {
       try {
         // Send text message only
         const response = await axios.post(
-          `http://31.97.206.144:4051/api/staff/sendchat/${staffId}/${doctorId}`,
+          `https://api.credenthealth.com/api/staff/sendchat/${staffId}/${doctorId}`,
           messageData
         );
 
@@ -224,11 +231,17 @@ const ChatPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-gray-100 rounded-lg shadow-lg overflow-hidden">
+// Doctors list with Back Arrow
+<div className="flex-1 overflow-y-auto">
+    <Navbar/>
+
+  {/* 🔙 Back Button + Heading */}
+  <div className="flex items-center mb-4">
+    <h2 className="text-xl font-semibold">Select a Doctor to Chat With</h2>
+  </div>
       {/* If no doctor is selected, show the list of doctors */}
       {!selectedDoctor ? (
         <div className="flex-1 overflow-y-auto p-4">
-          <h2 className="text-xl font-semibold mb-4">Select a Doctor to Chat With</h2>
           {doctorsLoading ? (
             <div className="flex justify-center items-center h-full">
               <p className="text-gray-500">Loading doctors...</p>

@@ -19,14 +19,18 @@ import AddressPage from "./Pages/AddressPage";
 import HraPage from "./Pages/HraPage";
 import HraQuestionsPage from "./Pages/HraQuestionsPage";
 import NotificationsPage from "./Pages/NotificationsPage";
+import ProfilePage from "./Pages/ProfilePage"
+import DeleteAccountPage from "./Pages/DeleteAccountPage";
+import HelpPage from "./Pages/HelpPage";
+import DoctorBlogs from './Pages/DoctorBlogs'
 
 function App() {
   return (
     <Router>
       {/* Google Translate Widget at the Top */}
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/" element={<LoginPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/doctor-category/:category/:type" element={<DoctorCategoryPage />} />
         <Route path="/doctor-list/:categoryName" element={<DoctorListPage />} />
@@ -45,6 +49,10 @@ function App() {
           <Route path="/hra-category" element={<HraPage />} />
            <Route path="/hra-questions" element={<HraQuestionsPage />} />
           <Route path="/notification" element={<NotificationsPage />} />
+         <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/delete-account" element={<DeleteAccountPage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/doctorblogs" element={<DoctorBlogs />} />
       </Routes>
     </Router>
   );

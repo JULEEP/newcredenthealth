@@ -1,143 +1,174 @@
 // MedicalRecordsPage.js
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Header from './Navbar'; // Import Header
-import Footer from './Footer'; // Import Footer
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import Navbar from "./Navbar";
+import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 
 const MedicalRecordsPage = () => {
-  const [bookings, setBookings] = useState([]); // Store fetched bookings
-  const [loading, setLoading] = useState(true); // Loading state
-  const [error, setError] = useState(null); // Error state
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [openBooking, setOpenBooking] = useState(null); // ✅ Track open booking
 
-  const staffId = localStorage.getItem('staffId'); // Get the staffId from localStorage
+  const staffId = localStorage.getItem("staffId");
 
-  // Fetch bookings when the component mounts
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await axios.get(`http://31.97.206.144:4051/api/staff/mybookings/${staffId}`);
-        
+        const response = await axios.get(
+          `https://api.credenthealth.com/api/staff/mybookings/${staffId}`
+        );
+
         if (response.data.success && response.data.bookings) {
-          setBookings(response.data.bookings); // Set the bookings state with the fetched data
+          setBookings(response.data.bookings);
         } else {
           setBookings([]);
         }
       } catch (err) {
-        console.error('Error fetching bookings:', err);
-        setError('Error fetching bookings. Please try again later.');
+        console.error("Error fetching bookings:", err);
+        setError("Error fetching bookings. Please try again later.");
       } finally {
-        setLoading(false); // Set loading to false after API call
+        setLoading(false);
       }
     };
 
     if (staffId) {
-      fetchBookings(); // Call the fetch function when component mounts
+      fetchBookings();
     } else {
-      setError('Staff ID not found.');
+      setError("Staff ID not found.");
       setLoading(false);
     }
   }, [staffId]);
 
-  // Function to check if a field is empty
-  const isEmpty = (value) => {
-    return !value || value.length === 0;
-  };
-
-  // Function to get the booking ID (customized)
-  const getBookingId = (booking) => {
-    // Check if diagnosticBookingId is available, otherwise fall back to doctorConsultationBookingId
-    return booking.diagnosticBookingId || booking.doctorConsultationBookingId;
+  const toggleBooking = (index) => {
+    setOpenBooking(openBooking === index ? null : index);
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <Header /> {/* Include Header */}
+    <div className="bg-gray-50 min-h-screen flex flex-col">
+      <Navbar />
 
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
+      <div className="flex-grow px-4 py-6">
+         <button
+      onClick={() => window.history.back()} // ya navigate(-1) use kar sakte ho agar react-router use ho raha hai
+      className="mr-2 p-1 rounded-full hover:bg-gray-200 transition-colors"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-6 w-6 text-gray-700"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M10 19l-7-7m0 0l7-7m-7 7h18"
+        />
+      </svg>
+    </button>
+        <h1 className="text-xl font-bold text-center text-gray-800 mb-6">
           Medical Records
         </h1>
 
         {loading ? (
-          <p className="text-center text-lg text-gray-600">Loading bookings...</p>
+          <p className="text-center text-lg text-gray-600">Loading...</p>
         ) : error ? (
           <p className="text-center text-lg text-red-500">{error}</p>
+        ) : bookings.length === 0 ? (
+          <p className="text-center text-lg text-gray-500">
+            No medical records available
+          </p>
         ) : (
-          <div>
-            {/* If no bookings are available */}
-            {bookings.length === 0 ? (
-              <p className="text-center text-lg text-gray-500">No medical records available</p>
-            ) : (
-              bookings.map((booking) => (
-                <div key={booking.bookingId} className="bg-white p-6 rounded-lg shadow-md mb-6">
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-                    Booking ID: {getBookingId(booking)} {/* Custom booking ID */}
-                  </h2>
-                  
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-500">
-                      <span className="font-medium">Service Type:</span> {booking.serviceType || 'Not provided'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <span className="font-medium">Doctor Consultation ID:</span> {booking.doctorConsultationBookingId}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <span className="font-medium">Diagnostic Booking ID:</span> {booking.diagnosticBookingId || 'Not available'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <span className="font-medium">Booking Date:</span> {new Date(booking.date).toLocaleDateString()} | 
-                      <span className="font-medium"> Time:</span> {booking.timeSlot}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      <span className="font-medium">Total Price:</span> ₹{booking.totalPrice}
-                    </p>
-                  </div>
+          bookings.map((booking, index) => (
+            <div
+              key={index}
+              className="bg-white rounded-xl shadow-md border p-4 mb-4"
+            >
+              {/* Service Type */}
+              <h2 className="text-base font-semibold text-gray-800 mb-2">
+                {booking.serviceType || "Online Consultation"}
+              </h2>
 
-                  {/* Conditionally render Doctor reports and prescriptions if it's a doctor consultation */}
-                  {booking.doctorConsultationBookingId && (
-                    <>
-                      <div className="mb-4">
-                        <p className="font-medium text-gray-800">Doctor Reports:</p>
-                        <p className="text-sm text-gray-500">
-                          {isEmpty(booking.doctorReports) ? 'No file available' : booking.doctorReports.join(', ')}
-                        </p>
-                      </div>
+              {/* Booking ID & Date */}
+              <p className="text-sm text-gray-700">
+                Booking ID :{" "}
+                {booking.doctorConsultationBookingId ||
+                  booking.diagnosticBookingId ||
+                  "N/A"}
+              </p>
+              <p className="text-sm text-gray-700 mb-3">
+                Date & Time :{" "}
+                {booking.date
+                  ? new Date(booking.date).toLocaleDateString("en-GB")
+                  : "N/A"}{" "}
+                , {booking.timeSlot || "--:--"}
+              </p>
 
-                      <div className="mb-4">
-                        <p className="font-medium text-gray-800">Doctor Prescriptions:</p>
-                        <p className="text-sm text-gray-500">
-                          {isEmpty(booking.doctorPrescriptions) ? 'No file available' : booking.doctorPrescriptions.join(', ')}
-                        </p>
-                      </div>
-                    </>
+              {/* Bottom Buttons (Booking Details + Files) */}
+              <div className="flex justify-between items-center border-t pt-3">
+                <button
+                  onClick={() => toggleBooking(index)}
+                  className="flex items-center text-gray-500 text-sm"
+                >
+                  {openBooking === index ? (
+                    <FaChevronUp className="mr-1" />
+                  ) : (
+                    <FaChevronDown className="mr-1" />
                   )}
+                  Booking Details
+                </button>
+                <button className="text-gray-500 border border-gray-300 rounded-md px-3 py-1 text-sm">
+                  No files available
+                </button>
+              </div>
 
-                  {/* Conditionally render Diagnostic reports and prescriptions if it's a diagnostic booking */}
-                  {booking.diagnosticBookingId && (
-                    <>
-                      <div className="mb-4">
-                        <p className="font-medium text-gray-800">Report File:</p>
-                        <p className="text-sm text-gray-500">
-                          {isEmpty(booking.reportFile) ? 'No file available' : booking.reportFile}
-                        </p>
-                      </div>
-
-                      <div className="mb-4">
-                        <p className="font-medium text-gray-800">Diagnostic Prescription:</p>
-                        <p className="text-sm text-gray-500">
-                          {isEmpty(booking.diagPrescription) ? 'No file available' : booking.diagPrescription}
-                        </p>
-                      </div>
-                    </>
-                  )}
+              {/* Expandable Booking Details */}
+              {openBooking === index && (
+                <div className="mt-4 bg-gray-50 p-4 rounded-lg shadow-inner">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">
+                    Report Details
+                  </h3>
+                  <p className="text-sm text-gray-700">
+                    <strong>Booking ID:</strong>{" "}
+                    {booking.doctorConsultationBookingId ||
+                      booking.diagnosticBookingId ||
+                      "N/A"}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Date:</strong>{" "}
+                    {booking.date
+                      ? new Date(booking.date).toLocaleDateString("en-GB") +
+                        " , " +
+                        (booking.timeSlot || "--:--")
+                      : "N/A"}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Status:</strong>{" "}
+                    {booking.status || "Confirmed"}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Total Price:</strong> ₹
+                    {booking.totalPrice || "0.00"}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Discount:</strong> ₹{booking.discount || "0.00"}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Payable Amount:</strong> ₹
+                    {booking.payableAmount || booking.totalPrice || "0.00"}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Service Type:</strong>{" "}
+                    {booking.serviceType || "Online Consultation"}
+                  </p>
                 </div>
-              ))
-            )}
-          </div>
+              )}
+            </div>
+          ))
         )}
       </div>
-
-      <Footer /> {/* Include Footer */}
     </div>
   );
 };

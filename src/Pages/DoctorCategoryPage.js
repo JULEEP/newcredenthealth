@@ -15,12 +15,21 @@ const DoctorCategoryPage = () => {
   const navigate = useNavigate();
 
   // Background color options for categories
-  const bgColors = ["bg-blue-100", "bg-red-100", "bg-yellow-100", "bg-pink-100", "bg-purple-100", "bg-indigo-100", "bg-red-100", "bg-green-100"];
+  const bgColors = [
+    "bg-blue-100",
+    "bg-red-100",
+    "bg-yellow-100",
+    "bg-pink-100",
+    "bg-purple-100",
+    "bg-indigo-100",
+    "bg-red-100",
+    "bg-green-100",
+  ];
 
   // Fetch doctor category data
   useEffect(() => {
     axios
-      .get("http://31.97.206.144:4051/api/admin/getallcategory")
+      .get("https://api.credenthealth.com/api/admin/getallcategory")
       .then((response) => {
         setDoctorCategoryData(response.data);
         setFilteredData(response.data);
@@ -35,7 +44,7 @@ const DoctorCategoryPage = () => {
   // Fetch special category data
   useEffect(() => {
     axios
-      .get("http://31.97.206.144:4051/api/admin/getspecialcategory")
+      .get("https://api.credenthealth.com/api/admin/getspecialcategory")
       .then((response) => {
         setSpecialCategoryData(response.data);
       })
@@ -71,14 +80,17 @@ const DoctorCategoryPage = () => {
     navigate("/home");
   };
 
+  // ✅ Special categories navigate kare doctor list pe
   const handleSubmit = () => {
     if (selectedSpecialCategories.length === 0) {
       alert("Please select at least one special category.");
     } else {
-      alert(`Selected Special Categories: ${selectedSpecialCategories.join(", ")}`);
+      const selectedCategoriesString = selectedSpecialCategories.join(",");
+      navigate(`/doctor-list/${selectedCategoriesString}`);
     }
   };
 
+  // ✅ Normal category navigate
   const handleCategoryClick = (categoryName) => {
     navigate(`/doctor-list/${categoryName}`);
   };
@@ -109,22 +121,20 @@ const DoctorCategoryPage = () => {
         {/* Display doctor category data */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {filteredData.map((item, index) => {
-            const bgColor = bgColors[index % bgColors.length]; // Assign different background colors cyclically
+            const bgColor = bgColors[index % bgColors.length];
             return (
               <div
                 key={index}
                 className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                 onClick={() => handleCategoryClick(item.name)}
               >
-                {/* Image/Icon with dynamic background */}
                 <div className={`${bgColor} p-6 flex justify-center items-center`}>
                   <img
-                    src={`http://31.97.206.144:4051${item.image}`}
+                    src={`https://api.credenthealth.com${item.image}`}
                     alt={item.name}
                     className="w-20 h-20 object-contain"
                   />
                 </div>
-                {/* Text */}
                 <div className={`${bgColor} p-4 text-center`}>
                   <h2 className="text-xl font-semibold text-gray-800">{item.name}</h2>
                 </div>
@@ -135,7 +145,9 @@ const DoctorCategoryPage = () => {
 
         {/* Special Categories Section */}
         <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-gray-800">Didn't Find your Issue?</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            Didn't Find your Issue?
+          </h2>
           <p className="text-muted mb-3">Please Be more Specific</p>
           <div className="space-y-4">
             {specialCategoryData.map((specialCategory, index) => (
@@ -146,7 +158,9 @@ const DoctorCategoryPage = () => {
                   onChange={handleSpecialCategoryChange}
                   className="mr-2"
                 />
-                <label className="text-lg text-gray-800">{specialCategory.name}</label>
+                <label className="text-lg text-gray-800">
+                  {specialCategory.name}
+                </label>
               </div>
             ))}
           </div>
@@ -157,7 +171,7 @@ const DoctorCategoryPage = () => {
                 onClick={handleSubmit}
                 className="p-3 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition duration-300"
               >
-                Submit Selected Special Categories
+                Find Doctors
               </button>
             </div>
           )}
@@ -165,12 +179,6 @@ const DoctorCategoryPage = () => {
 
         {/* Back Button */}
         <div className="mt-8 text-center">
-          <button
-            onClick={handleBack}
-            className="p-3 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 transition duration-300"
-          >
-            Back to Services
-          </button>
         </div>
       </div>
       <Footer />

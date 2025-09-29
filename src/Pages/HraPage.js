@@ -1,40 +1,38 @@
+// HraPage.js
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // To navigate to the new page
+import { useNavigate } from "react-router-dom";
+import { IoArrowBack } from "react-icons/io5"; // back arrow icon
 import axios from "axios";
+import Navbar from "./Navbar";
 
 const HraPage = () => {
   const [showMessage, setShowMessage] = useState(true);
-  const [hraData, setHraData] = useState(null);
+  const [hraData, setHraData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [backendMessage, setBackendMessage] = useState(""); // Store backend message
+  const [backendMessage, setBackendMessage] = useState("");
 
-  // Base URL for images
-  const BASE_URL = "http://31.97.206.144:4051";
-
-  // Fetch staffId from localStorage
+  const BASE_URL = "https://api.credenthealth.com";
   const staffId = localStorage.getItem("staffId");
-
-  // Hook for navigating to HRA Questions page
   const navigate = useNavigate();
 
   useEffect(() => {
     if (staffId) {
       setLoading(true);
       axios
-        .get(`http://31.97.206.144:4051/api/staff/allhracat/${staffId}`)
+        .get(`${BASE_URL}/api/staff/allhracat/${staffId}`)
         .then((response) => {
           if (response.data.message) {
-            setBackendMessage(response.data.message); // Set the backend message
+            setBackendMessage(response.data.message);
           }
           if (response.data.hras && response.data.hras.length > 0) {
-            setHraData(response.data.hras); // Store the fetched HRA data
+            setHraData(response.data.hras);
           } else {
-            setHraData([]); // Set an empty array if no HRA data
+            setHraData([]);
           }
           setLoading(false);
         })
-        .catch((error) => {
+        .catch(() => {
           setError("Error fetching HRA data");
           setLoading(false);
         });
@@ -45,85 +43,116 @@ const HraPage = () => {
   }, [staffId]);
 
   const handleStart = () => {
-    setShowMessage(false); // Hide the initial message and show HRA data
+    setShowMessage(false);
   };
 
-  const handleCategoryClick = (categoryName) => {
-    // Navigate to the new page that will show questions based on the category
-    navigate(`/hra-questions?category=${categoryName}`);
-  };
-
-  const renderHraData = () => {
-    if (loading) return <p>Loading...</p>;
-    if (error) return <p>{error}</p>;
-
-    // If there are HRAs, display them
-    if (hraData && hraData.length > 0) {
-      return (
-        <div className="mt-6 space-y-4">
-          {hraData.map((item, index) => (
-            <div
-              key={index}
-              className="flex items-center p-4 bg-gray-100 rounded-lg shadow-lg cursor-pointer"
-              onClick={() => handleCategoryClick(item.hraName)} // Handle click event
-            >
-              {/* Image on the left side */}
-              <img
-                src={BASE_URL + item.hraImage} // Prepend base URL to image path
-                alt={item.hraName}
-                className="w-20 h-20 object-cover rounded-full mr-4" // Circle image with margin to the right
-              />
-              {/* HRA Name beside the image */}
-              <p className="text-lg font-semibold text-blue-600">{item.hraName}</p>
-            </div>
-          ))}
-        </div>
-      );
+  const handleBack = () => {
+    if (!showMessage) {
+      setShowMessage(true); // go back to intro page
     } else {
-      return <p>No health risk data available.</p>;
+      navigate(-1); // go back in history
     }
   };
 
+  const handleCategoryClick = (categoryName) => {
+    navigate(`/hra-questions?category=${categoryName}`);
+  };
+
   return (
-    <div className="py-12 px-4 sm:px-6 lg:px-8">
+  <div className="bg-white min-h-screen flex flex-col pb-20">
+    {/* Navbar */}
+    <Navbar />
+
+    {/* Content Wrapper with padding-top */}
+    <div className="flex-1 pt-16 px-5 py-6 overflow-y-auto">
+      {/* Header */}
+      <div className="flex items-center mb-4">
+        <IoArrowBack
+          size={24}
+          className="cursor-pointer"
+          onClick={handleBack}
+        />
+        <h1 className="flex-1 text-center text-lg font-semibold">HRA</h1>
+        <div className="w-6" /> {/* spacer to balance layout */}
+      </div>
+
       {showMessage ? (
-        <div className="bg-white p-6 rounded-lg w-full max-w-md mx-auto shadow-xl">
-          <h2 className="text-2xl font-semibold text-center mb-4 text-blue-600">Know Your Health Risk</h2>
+        <div className="max-w-md mx-auto">
+          {/* Title */}
+          <h2 className="text-3xl font-bold mb-4">
+            Know Your <span className="text-blue-600">Health</span> Risk
+          </h2>
+
+          {/* What's This */}
+          <h3 className="text-lg font-semibold mb-1">What's This?</h3>
           <p className="text-gray-700 mb-4">
-            <strong className="text-blue-600">What's This?</strong>
+            A quick, evidence-based questionnaire that spots potential health
+            risks and gives you an instant overview of your current health risk.
             <br />
-            A quick, evidence-based questionnaire that spots potential health risks and gives you an instant overview of your current health risk.
-          </p>
-          <p className="text-gray-700 mb-4">
-            <strong className="text-blue-600">Why Take It?</strong>
             <br />
-            - Insight in 5 minutes - snapshot of your current health risk.
-            <br />
-            - Preventive focus - catch early warning signs before they develop.
-            <br />
-            - Actionable tips- simple next steps you can start today.
-          </p>
-          <p className="text-gray-700 mb-4">
-            Note: This is not a medical diagnosis and is for educational purposes only. Your answers stay private and will be used for analysis to get you a score.
+            These questions guide you to wellness, not fear.
           </p>
 
-          {/* Display backend message */}
+          {/* Why Take It */}
+          <h3 className="text-lg font-semibold mb-1">Why Take It?</h3>
+          <ul className="list-disc pl-5 text-gray-700 mb-4">
+            <li>Insight in 5 minutes - snapshot of your current health risk.</li>
+            <li>Preventive focus - catch early warning signs before they develop.</li>
+            <li>Actionable tips - simple next steps you can start today.</li>
+          </ul>
+
+          {/* Note */}
+          <p className="text-sm text-gray-600 mb-6">
+            <span className="font-semibold">Note:</span> This is not a medical
+            diagnosis and is for education purposes. Your answers stay private
+            and will be used for analysis to get you a score.
+          </p>
+
+          {/* Backend message */}
           {backendMessage && (
-            <p className="text-green-500 text-center font-semibold">{backendMessage}</p>
+            <p className="text-green-500 text-center font-semibold mb-4">
+              {backendMessage}
+            </p>
           )}
 
+          {/* Start Button */}
           <button
             onClick={handleStart}
-            className="w-full py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300 mt-4"
+            className="w-full py-3 bg-blue-100 text-blue-600 font-semibold rounded-md mb-10"
           >
-            OK, Let's Start
+            Let&apos;s Start
           </button>
         </div>
       ) : (
-        renderHraData()
+        <div className="mt-4 space-y-4">
+          {loading ? (
+            <p>Loading...</p>
+          ) : error ? (
+            <p>{error}</p>
+          ) : hraData.length > 0 ? (
+            hraData.map((item, index) => (
+              <div
+                key={index}
+                className="flex items-center p-3 border rounded-md cursor-pointer"
+                onClick={() => handleCategoryClick(item.hraName)}
+              >
+                <img
+                  src={BASE_URL + item.hraImage}
+                  alt={item.hraName}
+                  className="w-12 h-12 object-cover rounded mr-3"
+                />
+                <p className="text-base font-semibold">{item.hraName}</p>
+              </div>
+            ))
+          ) : (
+            <p>No health risk data available.</p>
+          )}
+        </div>
       )}
     </div>
-  );
+  </div>
+);
+
 };
 
 export default HraPage;

@@ -1,32 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { FaCartPlus } from 'react-icons/fa'; // Importing cart icon
-import { useNavigate } from 'react-router-dom'; // For navigation
-import Navbar from './Navbar';  // Adjust path if necessary
-import Footer from './Footer';  // Adjust path if necessary
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import Navbar from "./Navbar";
+import { FaPlus } from "react-icons/fa";
 
 const ScanAndXRayPage = () => {
   const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
-  const [selectedScan, setSelectedScan] = useState(null); // Selected scan for modal
-  const navigate = useNavigate(); // Hook to navigate to other pages
+  const [expanded, setExpanded] = useState(null); // For Show More toggle
+  const navigate = useNavigate();
 
-  // Retrieve staffId from localStorage
-  const staffId = localStorage.getItem('staffId');
+  const staffId = localStorage.getItem("staffId");
 
   useEffect(() => {
     const fetchScans = async () => {
       try {
-        const response = await axios.get('http://31.97.206.144:4051/api/admin/getallxrays');  // API endpoint to fetch scans and x-rays
+        const response = await axios.get(
+          "https://api.credenthealth.com/api/admin/getallxrays"
+        );
         if (response.data && response.data.length > 0) {
-          setScans(response.data);  // Set the fetched scans
+          setScans(response.data);
         } else {
-          setError('No scans available');
+          setError("No scans available");
         }
       } catch (err) {
-        setError('Error fetching data');
+        setError("Error fetching data");
       } finally {
         setLoading(false);
       }
@@ -35,123 +34,162 @@ const ScanAndXRayPage = () => {
     fetchScans();
   }, []);
 
-  const openModal = (scan) => {
-    setSelectedScan(scan); // Set the selected scan for the modal
-    setIsModalOpen(true);  // Open the modal
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);  // Close the modal
-    setSelectedScan(null);   // Reset selected scan
-  };
-
-  const addToCart = async () => {
+  // Add ALL scans to cart
+  const addAllToCart = async () => {
     if (!staffId) {
-      alert('Staff ID not found in localStorage!');
+      alert("Staff ID not found in localStorage!");
       return;
     }
 
     try {
-      const response = await axios.post(
-        `http://31.97.206.144:4051/api/staff/addcart/${staffId}`,
+      for (let scan of scans) {
+        await axios.post(
+          `https://api.credenthealth.com/api/staff/addcart/${staffId}`,
+          {
+            itemId: scan._id,
+            action: "inc",
+          }
+        );
+      }
+      alert("All items added to cart successfully!");
+      navigate("/cart");
+    } catch (err) {
+      console.error("❌ Error adding all to cart:", err);
+      alert("Error adding all items to cart");
+    }
+  };
+
+  // Add SINGLE scan to cart
+  const addSingleToCart = async (scan) => {
+    if (!staffId) {
+      alert("Staff ID not found in localStorage!");
+      return;
+    }
+
+    try {
+      await axios.post(
+        `https://api.credenthealth.com/api/staff/addcart/${staffId}`,
         {
-          itemId: selectedScan._id,
-          action: 'inc', // 'inc' means add to cart
+          itemId: scan._id,
+          action: "inc",
         }
       );
-
-      if (response.status === 200) {
-        alert('Item added to cart successfully!');
-        closeModal(); // Close the modal after adding to cart
-        navigate('/cart'); // Redirect to cart page after successful addition
-      } else {
-        alert('Failed to add item to cart');
-      }
+      alert(`${scan.title} added to cart!`);
     } catch (err) {
-      console.error("❌ Error adding to cart:", err);
-      alert('Error adding item to cart');
+      console.error("❌ Error adding single item to cart:", err);
+      alert("Error adding item to cart");
     }
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <Navbar /> {/* Add Navbar here */}
+    <div className="bg-gray-50 min-h-screen pb-20">
+      <Navbar />
 
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-          Scans & X-Rays
-        </h1>
+      <div className="py-4 px-4 sm:px-6 lg:px-8">
 
-        {loading && <p className="text-center text-lg text-gray-600">Loading scans...</p>}
+             <button
+      onClick={() => window.history.back()} // ya navigate(-1) use kar sakte ho agar react-router use ho raha hai
+      className="mr-2 p-1 rounded-full hover:bg-gray-200 transition-colors"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-6 w-6 text-gray-700"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M10 19l-7-7m0 0l7-7m-7 7h18"
+        />
+      </svg>
+    </button>
+
+        {/* Search Bar */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search X-rays..."
+            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+
+        <h2 className="font-semibold text-lg mb-4">
+          Popular Scans & X-ray's
+        </h2>
+
+        {loading && (
+          <p className="text-center text-lg text-gray-600">Loading scans...</p>
+        )}
         {error && <p className="text-center text-lg text-red-500">{error}</p>}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-          {scans.length > 0 ? (
-            scans.map((scan) => (
-              <div key={scan._id} className="bg-white p-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                {/* Image of the scan */}
-                <img 
-                  src={`http://31.97.206.144:4051${scan.image}`} 
-                  alt={scan.title} 
-                  className="w-full h-40 object-cover rounded-md mb-4"
-                />
+        <div className="space-y-4">
+          {scans.map((scan, index) => (
+            <div
+              key={scan._id}
+              className="bg-white p-4 rounded-lg shadow flex flex-col"
+            >
+              <div className="flex justify-between items-start">
+                {/* Left side */}
+                <div className="flex items-center">
+                  <img
+                    src={`https://api.credenthealth.com${scan.image}`}
+                    alt={scan.title}
+                    className="w-12 h-12 rounded-full mr-3"
+                  />
+                  <div>
+                    <h2 className="font-semibold">{scan.title}</h2>
+                    <p className="text-sm text-gray-500">
+                      Report in: {scan.reportTime || "24"} hrs
+                    </p>
+                  </div>
+                </div>
 
-                {/* Scan Title */}
-                <h2 className="text-2xl font-semibold text-gray-800 mb-2">{scan.title}</h2>
+                {/* Right side */}
+                <div className="flex flex-col items-end">
+                  <p className="font-bold">₹ {scan.price}</p>
+                  <p className="text-xs text-gray-500">Onwards</p>
 
-                {/* Scan Price */}
-                <p className="text-lg text-gray-600 mb-2">Price: ₹{scan.price}</p>
-
-                {/* Scan Preparation */}
-                <p className="text-sm text-gray-500 mb-4"><strong>Preparation:</strong> {scan.preparation}</p>
-
-                {/* Report Time */}
-                <p className="text-sm text-gray-500 mb-4"><strong>Report in:</strong> {scan.reportTime} hours</p>
-
-                {/* Add to Cart Icon */}
-                <div className="flex justify-between mt-4">
-                  <button 
-                    className="text-white bg-[#2E67F6] p-3 rounded-full hover:bg-[#2559cc] transition duration-300"
-                    onClick={() => openModal(scan)} // Open modal for adding to cart
-                  >
-                    <FaCartPlus size={20} />
-                  </button>
+                  {/* Buttons */}
+                  <div className="flex items-center mt-2">
+                    <button
+                      onClick={addAllToCart}
+                      className="bg-[#2E67F6] text-white px-4 py-1 rounded-md text-sm mr-2"
+                    >
+                      Book Now
+                    </button>
+                    <button
+                      onClick={() => addSingleToCart(scan)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition"
+                    >
+                      <FaPlus />
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))
-          ) : (
-            <p className="text-center text-lg text-gray-500">No scans available.</p>
-          )}
+
+              {/* Show More toggle */}
+              <div className="mt-3">
+                {expanded === index && (
+                  <div className="bg-gray-50 p-3 rounded-md border text-sm text-gray-600">
+                    {scan.preparation || "No extra preparation required."}
+                  </div>
+                )}
+                <button
+                  className="text-sm text-blue-600 mt-2"
+                  onClick={() =>
+                    setExpanded(expanded === index ? null : index)
+                  }
+                >
+                  {expanded === index ? "Show Less" : "Show More"}
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-
-      {/* Modal for Add to Cart Confirmation */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Add to Cart</h2>
-            <p className="text-lg text-gray-600 mb-4">Are you sure you want to add <strong>{selectedScan.title}</strong> to your cart?</p>
-
-            <div className="flex justify-between">
-              <button 
-                className="text-white bg-gray-600 p-3 rounded-full hover:bg-gray-500 transition duration-300"
-                onClick={closeModal} // Close modal
-              >
-                Cancel
-              </button>
-
-              <button 
-                className="text-white bg-[#2E67F6] p-3 rounded-full hover:bg-[#2559cc] transition duration-300"
-                onClick={addToCart} // Add scan to cart
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <Footer /> {/* Add Footer here */}
     </div>
   );
 };

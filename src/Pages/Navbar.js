@@ -1,24 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { FaWallet, FaShoppingCart } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import {
+  IoHomeOutline,
+  IoPersonOutline,
+  IoWalletOutline,
+  IoCartOutline,
+  IoMenuOutline,
+  IoAddOutline,
+} from "react-icons/io5";
+import { CiChat1 } from "react-icons/ci";
 import axios from "axios";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [walletBalance, setWalletBalance] = useState(null);
-  const location = useLocation();
+  const [cartCount, setCartCount] = useState(0); // ✅ Cart count state
   const navigate = useNavigate();
 
   const staffId = localStorage.getItem("staffId");
 
-  const toggleProfileMenu = () => {
-    setIsProfileMenuOpen(!isProfileMenuOpen);
-  };
-
+  // ✅ Fetch Wallet Balance
   useEffect(() => {
     if (staffId) {
       axios
-        .get(`http://31.97.206.144:4051/api/staff/wallet/${staffId}`)
+        .get(`https://api.credenthealth.com/api/staff/wallet/${staffId}`)
         .then((response) => {
           setWalletBalance(response.data.wallet_balance);
         })
@@ -28,152 +33,144 @@ const Navbar = () => {
     }
   }, [staffId]);
 
-  const closeMenuAndNavigate = (hash) => {
-    if (location.pathname !== "/") {
-      window.location.href = `/${hash}`;
-    } else {
-      document
-        .getElementById(hash.replace("#", ""))
-        ?.scrollIntoView({ behavior: "smooth" });
+  // ✅ Fetch Cart Count
+  useEffect(() => {
+    if (staffId) {
+      axios
+        .get(`https://api.credenthealth.com/api/staff/mycart/${staffId}`)
+        .then((response) => {
+          if (response.data && response.data.items) {
+            setCartCount(response.data.items.length); // ✅ items ki length set karo
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching cart data:", error);
+        });
     }
-  };
+  }, [staffId]);
 
-  const handleBookingsClick = () => {
-    navigate("/mybookings");
-  };
+  // ✅ Reusable Icon Wrapper
+  const IconWrapper = ({ children }) => (
+    <div className="bg-white shadow-md rounded-full p-2 flex items-center justify-center relative">
+      {children}
+    </div>
+  );
 
   return (
-    <header className="bg-white py-3 sticky top-0 z-50">
-      <div className="container mx-auto flex justify-between items-center px-4 sm:px-6 h-20">
-        {/* ✅ Logo - Left */}
-        <div className="flex items-center gap-2">
-          <img
-            src="/logo.png"
-            alt="Logo"
-            className="w-20 h-20 md:w-24 object-contain"
-          />
-          <h3 className="font-extrabold text-xl md:text-2xl text-gray-900">
-            CrendentHealth
-          </h3>
+    <>
+      {/* ✅ Top Navbar */}
+      <header className="bg-white py-3 sticky top-0 z-50 shadow-md">
+        <div className="container mx-auto flex justify-between items-center px-4 sm:px-6 h-16">
+          {/* Logo */}
+       <div className="flex items-center gap-2">
+  <Link to="/home" className="flex items-center gap-2 no-underline">
+    <img
+      src="/logo.png"
+      alt="Logo"
+      className="w-12 h-12 object-contain"
+    />
+    <h3 className="font-bold text-xl text-gray-900">Credenthealth</h3>
+  </Link>
+</div>
+
+
+          {/* ✅ Right side */}
+          <div className="flex items-center gap-6">
+            {/* Desktop Nav */}
+            <div className="hidden lg:flex gap-6 text-gray-700 text-sm font-medium">
+              <button onClick={() => navigate("/home")} className="flex items-center gap-1">
+                <IoHomeOutline size={20} /> Home
+              </button>
+              <button onClick={() => navigate("/mybookings")} className="flex items-center gap-1">
+                <IoMenuOutline size={20} /> Bookings
+              </button>
+              <button onClick={() => navigate("/medicalrecord")} className="flex items-center gap-1">
+                <IoAddOutline size={20} /> MedicalRecords
+              </button>
+              <button onClick={() => navigate("/chat")} className="flex items-center gap-1">
+                <CiChat1 size={20} /> Chat
+              </button>
+              <button onClick={() => navigate("/profile")} className="flex items-center gap-1">
+                <IoPersonOutline size={20} /> Profile
+              </button>
+            </div>
+
+            {/* Wallet */}
+           {walletBalance !== null && (
+        <div
+          onClick={() => navigate('/wallet')}
+          className="flex items-center gap-1 text-gray-700 bg-gray-100 px-2 py-1 rounded cursor-pointer hover:bg-gray-200 transition"
+          title="Go to Wallet"
+        >
+          <IoWalletOutline size={20} />
+          <span className="text-sm font-medium">₹{walletBalance}</span>
         </div>
+      )}
 
-
-
-        {/* ✅ Nav Items - Right */}
-        <div className="hidden md:flex space-x-8 items-center text-xl font-sans">
-          <a
-            href="/"
-            className="text-black font-semibold hover:text-gray-200 transition duration-300"
-          >
-            Home
-          </a>
-          <button
-            onClick={handleBookingsClick}
-            className="text-black font-semibold hover:text-gray-200 transition duration-300"
-          >
-            Bookings
-          </button>
-          <a
-            href="/medicalrecord"
-            onClick={() => closeMenuAndNavigate("#medical-records")}
-            className="text-black font-semibold hover:text-gray-200 transition duration-300"
-          >
-            Medical Records
-          </a>
-          <a
-            href="/chat"
-            onClick={() => closeMenuAndNavigate("#chats")}
-            className="text-black font-semibold hover:text-gray-200 transition duration-300"
-          >
-            Chats
-          </a>
-
-          {/* Profile Dropdown */}
-          <div className="relative">
+            {/* Cart with Badge */}
             <button
-              className="text-black font-semibold hover:text-gray-200 transition duration-300 flex items-center"
-              onClick={toggleProfileMenu}
+              onClick={() => navigate("/cart")}
+              className="relative flex items-center text-gray-800 hover:text-gray-600"
             >
-              Profile
+              <IoCartOutline size={26} />
+
+              {/* 🔴 Always show badge, even if cartCount = 0 */}
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {cartCount}
+              </span>
+
+              <span className="hidden md:inline ml-1">Cart</span>
             </button>
 
-            {isProfileMenuOpen && (
-              <div className="absolute right-0 mt-2 bg-white text-black rounded-lg shadow-lg w-48">
-                <ul>
-                  <li>
-                    <a
-                      href="/login"
-                      className="block px-4 py-2 hover:bg-gray-100"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                    >
-                      Login
-                    </a>
-                  </li>
-                   <li>
-                    <a
-                      href="/family"
-                      className="block px-4 py-2 hover:bg-gray-100"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                    >
-                      Family
-                    </a>
-                  </li>
-                   <li>
-                    <a
-                      href="/address"
-                      className="block px-4 py-2 hover:bg-gray-100"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                    >
-                      Address
-                    </a>
-                  </li>
-                   <li>
-                    <a
-                      href="/notification"
-                      className="block px-4 py-2 hover:bg-gray-100"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                    >
-                      Notification
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="/logout"
-                      className="block px-4 py-2 hover:bg-gray-100"
-                      onClick={() => setIsProfileMenuOpen(false)}
-                    >
-                      Logout
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            )}
           </div>
+        </div>
+      </header>
 
-          {/* Wallet */}
-          <a
-            href="/wallet"
-            className="text-black font-semibold hover:text-gray-200 transition duration-300 flex items-center"
-          >
-            <FaWallet size={20} className="mr-2" />
-            Wallet
-            {walletBalance !== null && (
-              <span className="ml-2 text-xs bg-black text-white rounded-full px-2 py-1">
-                {walletBalance}
-              </span>
-            )}
-          </a>
+      {/* ✅ Bottom Navigation (Mobile only) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-inner border-t z-50">
+        <div className="flex justify-around items-center py-2">
+          {/* Home */}
+          <button onClick={() => navigate("/home")} className="flex flex-col items-center text-gray-700 text-xs">
+            <IconWrapper>
+              <IoHomeOutline size={22} />
+            </IconWrapper>
+            Home
+          </button>
 
-          {/* Cart */}
-          <a
-            href="/cart"
-            className="text-black font-semibold hover:text-gray-200 transition duration-300 flex items-center"
-          >
-            <FaShoppingCart size={20} className="mr-2" /> Cart
-          </a>
+          {/* Bookings */}
+          <button onClick={() => navigate("/mybookings")} className="flex flex-col items-center text-gray-700 text-xs">
+            <IconWrapper>
+              <IoMenuOutline size={22} />
+            </IconWrapper>
+            Bookings
+          </button>
+
+          {/* Records */}
+          <button onClick={() => navigate("/medicalrecord")} className="flex flex-col items-center text-gray-700 text-xs">
+            <IconWrapper>
+              <IoAddOutline size={22} />
+            </IconWrapper>
+            MedicalRecords
+          </button>
+
+          {/* Chats */}
+          <button onClick={() => navigate("/chat")} className="flex flex-col items-center text-gray-700 text-xs">
+            <IconWrapper>
+              <CiChat1 size={22} />
+            </IconWrapper>
+            Chat
+          </button>
+
+          {/* Profile */}
+          <button onClick={() => navigate("/profile")} className="flex flex-col items-center text-gray-700 text-xs">
+            <IconWrapper>
+              <IoPersonOutline size={22} />
+            </IconWrapper>
+            Profile
+          </button>
         </div>
       </div>
-    </header>
+    </>
   );
 };
 

@@ -1,160 +1,220 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useLocation, useNavigate } from "react-router-dom"; // Import useNavigate for navigation
-import Navbar from "./Navbar"; // Import Navbar
-import Footer from "./Footer"; // Import Footer
+import { useNavigate } from "react-router-dom";
+import Navbar from "./Navbar";
+
+const BASE_URL = "https://api.credenthealth.com";
 
 const HraQuestionsPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("All"); // default All
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({}); // To store selected answers for each question
-  const [staffId, setStaffId] = useState("6897188e4c8a74b47a017d9a"); // Example staffId, you can replace it as needed
-  const [popupMessage, setPopupMessage] = useState(null); // State for storing the popup message
-  const [popupDetails, setPopupDetails] = useState(null); // State for storing the popup details
-
-  const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  const categoryName = params.get("category");
+  const [answers, setAnswers] = useState({});
+  const [staffId, setStaffId] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0); // for one-question-at-a-time
+  const [popupMessage, setPopupMessage] = useState(null);
+  const [popupDetails, setPopupDetails] = useState(null);
 
   const navigate = useNavigate();
 
+  // Get staffId from localStorage
   useEffect(() => {
-    if (categoryName) {
-      setLoading(true);
-      axios
-        .get(`http://31.97.206.144:4051/api/admin/hra-questions?hraCategoryName=${categoryName}`)
-        .then((response) => {
-          if (response.data.hraQuestions) {
-            setQuestions(response.data.hraQuestions);
-          } else {
-            setQuestions([]);
-          }
-          setLoading(false);
-        })
-        .catch((error) => {
-          setError("No HRA questions");
-          setLoading(false);
-        });
+    const storedStaffId = localStorage.getItem("staffId");
+    if (storedStaffId) {
+      setStaffId(storedStaffId);
     } else {
-      setError("Category not found.");
-      setLoading(false);
+      setError("Staff ID not found in localStorage");
     }
-  }, [categoryName]);
+  }, []);
 
-  const handleCheckboxChange = (questionId, optionId) => {
-    setAnswers((prevAnswers) => ({
-      ...prevAnswers,
-      [questionId]: optionId,
-    }));
+// Fetch categories
+useEffect(() => {
+  if (!staffId) return;
+
+  axios
+    .get(`${BASE_URL}/api/staff/allhracat/${staffId}`)
+    .then((res) => {
+      if (res.data && res.data.hras && res.data.hras.length > 0) {
+        // prepend All option
+        setCategories([{ hraName: "All" }, ...res.data.hras]);
+      } else {
+        setCategories([{ hraName: "All" }]);
+      }
+    })
+    .catch(() => setError("No categories found"));
+}, [staffId]);
+
+
+  // Fetch questions (All / Category)
+  useEffect(() => {
+    setLoading(true);
+    let url = `${BASE_URL}/api/admin/hra-questions`;
+
+    if (selectedCategory && selectedCategory !== "All") {
+      url = `${BASE_URL}/api/admin/hra-questions?hraCategoryName=${selectedCategory}`;
+    }
+
+    axios
+      .get(url)
+      .then((res) => {
+        if (res.data.hraQuestions) {
+          setQuestions(res.data.hraQuestions);
+          setCurrentIndex(0); // reset to first question
+        } else {
+          setQuestions([]);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("No HRA questions");
+        setLoading(false);
+      });
+  }, [selectedCategory]);
+
+  const handleAnswerSelect = (questionId, optionId) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+  };
+
+  const handleNext = () => {
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
   };
 
   const handleSubmit = () => {
-    const formattedAnswers = Object.keys(answers).map((questionId) => ({
-      questionId,
-      selectedOption: answers[questionId],
+    const formattedAnswers = Object.keys(answers).map((qId) => ({
+      questionId: qId,
+      selectedOption: answers[qId],
     }));
 
-    const payload = {
-      staffId,
-      answers: formattedAnswers,
-    };
+    const payload = { staffId, answers: formattedAnswers };
 
-    // API call to submit answers
     axios
-      .post("http://31.97.206.144:4051/api/staff/submit-hra-answers", payload)
-      .then((response) => {
-        // Set the popup message and details
-        setPopupMessage(response.data.message);
+      .post(`${BASE_URL}/api/staff/submit-hra-answers`, payload)
+      .then((res) => {
+        setPopupMessage(res.data.message);
         setPopupDetails({
-          totalPoints: response.data.totalPoints,
-          riskLevel: response.data.riskLevel,
-          riskMessage: response.data.riskMessage,
+          totalPoints: res.data.totalPoints,
+          riskLevel: res.data.riskLevel,
+          riskMessage: res.data.riskMessage,
         });
       })
-      .catch((error) => {
-        alert(`Error: ${error.response ? error.response.data.message : error.message}`);
-      });
-  };
-
-  const renderQuestions = () => {
-    if (loading) return <p>Loading...</p>;
-    if (error) return <p>{error}</p>;
-
-    if (questions.length > 0) {
-      return (
-        <div className="space-y-4">
-          {questions.map((question, index) => (
-            <div key={index} className="p-4 bg-gray-100 rounded-lg">
-              <h3 className="text-lg font-semibold">{question.question}</h3>
-              <div className="mt-4">
-                {question.options.map((option, idx) => (
-                  <div key={idx} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`question-${question._id}-option-${option._id}`}
-                      checked={answers[question._id] === option._id}
-                      onChange={() => handleCheckboxChange(question._id, option._id)} // Use option._id
-                      className="form-checkbox h-5 w-5 text-blue-600"
-                    />
-                    <label
-                      htmlFor={`question-${question._id}-option-${option._id}`}
-                      className="text-gray-700"
-                    >
-                      {option.text}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+      .catch((err) =>
+        alert(`Error: ${err.response ? err.response.data.message : err.message}`)
       );
-    } else {
-      return (
-        <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg shadow-lg">
-          <h3 className="text-xl font-semibold text-gray-700">Oops! No Questions Found</h3>
-          <p className="mt-4 text-gray-600 text-center">
-            No questions are available for this category right now. Please check back later.
-          </p>
-          <button
-            onClick={() => navigate("/")}
-            className="mt-6 py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300"
-          >
-            Go Back
-          </button>
-        </div>
-      );
-    }
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Include the Navbar */}
+    <div className="min-h-screen bg-white">
       <Navbar />
 
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-semibold text-center mb-6 text-blue-600">
-          Questions for {categoryName}
-        </h2>
-        {renderQuestions()}
+      <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">
+        {/* Title */}
+        <h2 className="text-2xl font-bold text-center mb-4 text-black">HRA</h2>
+        <p className="text-lg font-semibold text-center mb-6">Testing</p>
 
-        {/* Submit Button */}
-        <div className="flex justify-center mt-8">
-          <button
-            onClick={handleSubmit}
-            className="py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition duration-300"
+        {/* Dropdown */}
+        <div className="flex justify-center mb-6">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-gray-700"
           >
-            Submit Answers
-          </button>
+            {categories.map((cat, i) => (
+              <option key={i} value={cat.hraName}>
+                {cat.hraName}
+              </option>
+            ))}
+          </select>
         </div>
+
+        {/* Questions */}
+        {loading ? (
+          <p className="text-center">Loading...</p>
+        ) : error ? (
+          <p className="text-center text-red-500">{error}</p>
+        ) : questions.length > 0 ? (
+          <div>
+            {/* Progress */}
+            <p className="text-center font-medium mb-4">
+              Question {currentIndex + 1} of {questions.length}
+            </p>
+
+            {/* Single Question */}
+            <div className="border rounded-lg p-4 mb-4 bg-gray-50">
+              <h3 className="font-semibold mb-3">
+                {currentIndex + 1}. {questions[currentIndex].question}
+              </h3>
+              <div className="space-y-3">
+                {questions[currentIndex].options.map((opt) => (
+                  <label
+                    key={opt._id}
+                    className="flex items-center space-x-2 border rounded-md px-3 py-2 cursor-pointer"
+                  >
+                    <input
+                      type="radio"
+                      name={`question-${questions[currentIndex]._id}`}
+                      checked={answers[questions[currentIndex]._id] === opt._id}
+                      onChange={() =>
+                        handleAnswerSelect(questions[currentIndex]._id, opt._id)
+                      }
+                      className="h-5 w-5 text-blue-600"
+                    />
+                    <span>{opt.text}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex justify-between mt-6">
+              <button
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+                className={`px-6 py-2 rounded-md ${
+                  currentIndex === 0
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : "bg-blue-500 text-white hover:bg-blue-600"
+                }`}
+              >
+                Previous
+              </button>
+
+              {currentIndex === questions.length - 1 ? (
+                <button
+                  onClick={handleSubmit}
+                  className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600"
+                >
+                  Submit
+                </button>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600"
+                >
+                  Next
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-center text-gray-500">No questions found.</p>
+        )}
       </div>
 
-      {/* Popup Modal */}
+      {/* Popup */}
       {popupMessage && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-center">{popupMessage}</h3>
+            <h3 className="text-lg font-bold text-center">{popupMessage}</h3>
             <div className="mt-4 text-center">
               <p>Total Points: {popupDetails.totalPoints}</p>
               <p>Risk Level: {popupDetails.riskLevel}</p>
@@ -162,8 +222,8 @@ const HraQuestionsPage = () => {
             </div>
             <div className="mt-6 text-center">
               <button
-                onClick={() => setPopupMessage(null)} // Close the popup
-                className="py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-300"
+                onClick={() => setPopupMessage(null)}
+                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
               >
                 Close
               </button>
@@ -171,9 +231,6 @@ const HraQuestionsPage = () => {
           </div>
         </div>
       )}
-
-      {/* Include the Footer */}
-      <Footer />
     </div>
   );
 };
