@@ -165,11 +165,7 @@ const HraQuestionsPage = () => {
                         checked={answers[questions[currentIndex]._id] === opt._id}
                         onChange={() => {
                           handleAnswerSelect(questions[currentIndex]._id, opt._id);
-                          setTimeout(() => {
-                            handleNext();
-                          }, 400); // 1000ms = 1 second delay
                         }}
-
                         className="h-5 w-5 text-blue-600"
                       />
                       <span>{opt.text}</span>
