@@ -119,9 +119,7 @@ const Footer = () => {
 
         {/* Bottom Section */}
         <div className="d-flex flex-column flex-md-row justify-content-between align-items-center">
-          <p className="mb-2 mb-md-0">
-            &copy; 2025 Credenthealth. All rights reserved.
-          </p>
+          
 
           {/* Privacy & Terms Links */}
           <div className="d-flex gap-3">
@@ -135,6 +133,10 @@ const Footer = () => {
               Terms & Conditions
             </a>
           </div>
+
+          <p className="mt-2 mt-md-0">
+            &copy; 2025 Credenthealth. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
