@@ -17,6 +17,7 @@ const RecentActivityPage = () => {
       setDoctorBooking(res.data.booking || null);
     } catch (err) {
       console.error("Doctor booking fetch error:", err);
+      setError("No recent doctor booking found for this user.");
     }
   };
 
@@ -28,6 +29,7 @@ const RecentActivityPage = () => {
       setPackageBooking(res.data.package || null);
     } catch (err) {
       console.error("Package booking fetch error:", err);
+      setError("No recent package booking found for this user.");
     }
   };
 
@@ -49,35 +51,46 @@ const RecentActivityPage = () => {
 
   return (
     <div className="bg-gray-50 py-8 px-4">
-      <h1 className="text-xl font-semibold text-gray-800 mb-4">
-        Recent Activity
-      </h1>
+      <h1 className="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h1>
 
       {loading ? (
         <p className="text-gray-500">Loading...</p>
       ) : error ? (
-        <p className="text-red-500">{error}</p>
+        <p className="text-blue-500 bg-blue-100 p-4 rounded-md border border-blue-200">
+          {error}
+        </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Doctor Booking */}
           <div className="bg-white border rounded-lg p-4 shadow-sm flex items-center gap-4">
             {doctorBooking ? (
               <>
-                <img
-                  src={`https://api.credenthealth.com${doctorBooking.doctorId.image}`}
-                  alt="Doctor"
-                  className="w-16 h-16 rounded-full object-cover border"
-                  onError={(e) =>
-                    (e.target.src = "https://via.placeholder.com/64?text=No+Image")
-                  }
-                />
+                {doctorBooking.doctorId && doctorBooking.doctorId.image ? (
+                  <img
+                    src={`https://api.credenthealth.com${doctorBooking.doctorId.image}`}
+                    alt="Doctor"
+                    className="w-16 h-16 rounded-full object-cover border"
+                    onError={(e) =>
+                      (e.target.src = "https://via.placeholder.com/64?text=No+Image")
+                    }
+                  />
+                ) : (
+                  <img
+                    src="https://via.placeholder.com/64?text=No+Image"
+                    alt="No Doctor Image"
+                    className="w-16 h-16 rounded-full object-cover border"
+                  />
+                )}
+
                 <div>
                   <p className="font-medium text-gray-800">
-                    {doctorBooking.doctorId.name}
+                    {doctorBooking.doctorId?.name || "No Name Available"}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {new Date(doctorBooking.date).toLocaleDateString()} •{" "}
-                    {doctorBooking.timeSlot}
+                    {doctorBooking.date
+                      ? new Date(doctorBooking.date).toLocaleDateString()
+                      : "No Date Available"}{" "}
+                    • {doctorBooking.timeSlot || "No Time Slot Available"}
                   </p>
                 </div>
               </>
@@ -91,9 +104,12 @@ const RecentActivityPage = () => {
             {packageBooking ? (
               <>
                 <div>
-                  <p className="font-medium text-gray-800">{packageBooking.name}</p>
+                  <p className="font-medium text-gray-800">
+                    {packageBooking.name || "No Package Name"}
+                  </p>
                   <p className="text-sm text-gray-500">
-                    ₹{packageBooking.price} • {packageBooking.totalTestsIncluded} tests
+                    ₹{packageBooking.price || "N/A"} •{" "}
+                    {packageBooking.totalTestsIncluded || "N/A"} tests
                   </p>
                 </div>
               </>

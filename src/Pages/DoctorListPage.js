@@ -4,13 +4,14 @@ import axios from "axios";
 import moment from "moment-timezone";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import { X, Check, Calendar } from "lucide-react"; // ✅ lightweight icons
+import { X, Check, Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 const DoctorListPage = () => {
   const { categoryName } = useParams();
   const [doctors, setDoctors] = useState([]);
+  const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -41,12 +42,44 @@ const DoctorListPage = () => {
   const navigate = useNavigate();
   const staffId = localStorage.getItem("staffId");
 
+  // ✅ FILTER DOCTORS BASED ON CONSULTATION TYPE
+  const filterDoctorsByConsultationType = (doctorsList, type) => {
+    if (!doctorsList || doctorsList.length === 0) return [];
+    
+    return doctorsList.filter(doctor => {
+      if (!doctor.consultation_type) return true;
+      
+      switch (type) {
+        case "Online":
+          return (doctor.consultation_type === "Online" || 
+                  doctor.consultation_type === "Both") && 
+                 doctor.onlineSlots && 
+                 doctor.onlineSlots.length > 0;
+        
+        case "Offline":
+          return (doctor.consultation_type === "Offline" || 
+                  doctor.consultation_type === "Both") && 
+                 doctor.offlineSlots && 
+                 doctor.offlineSlots.length > 0;
+        
+        default:
+          return true;
+      }
+    });
+  };
+
   // Fetch doctors based on the category
   useEffect(() => {
     axios
       .get(`https://api.credenthealth.com/api/admin/getdoctors?categories=${categoryName}`)
       .then((response) => {
-        setDoctors(response.data);
+        const allDoctors = response.data;
+        setDoctors(allDoctors);
+        
+        // ✅ Apply consultation type filter
+        const filtered = filterDoctorsByConsultationType(allDoctors, consultationType);
+        setFilteredDoctors(filtered);
+        
         setLoading(false);
       })
       .catch((error) => {
@@ -54,6 +87,14 @@ const DoctorListPage = () => {
         setLoading(false);
       });
   }, [categoryName]);
+
+  // ✅ UPDATE FILTERED DOCTORS WHEN CONSULTATION TYPE CHANGES
+  useEffect(() => {
+    if (doctors.length > 0) {
+      const filtered = filterDoctorsByConsultationType(doctors, consultationType);
+      setFilteredDoctors(filtered);
+    }
+  }, [consultationType, doctors]);
 
   // Fetch family members of the staff
   useEffect(() => {
@@ -146,7 +187,6 @@ const DoctorListPage = () => {
 
       // Check if wallet has sufficient balance
       if (availableDoctorBalance >= consultationFee) {
-        // Full payment from wallet - no transaction ID needed
         const response = await axios.post(
           `https://api.credenthealth.com/api/staff/consultationbooking/${staffId}`,
           {
@@ -156,7 +196,6 @@ const DoctorListPage = () => {
             familyMemberId: selectedFamilyMember,
             type: consultationType,
             useWallet: true,
-            // NO transactionId when using only wallet
           }
         );
 
@@ -168,7 +207,6 @@ const DoctorListPage = () => {
           alert("Booking failed: " + response.data.message);
         }
       } else {
-        // Insufficient wallet balance - initiate Razorpay
         initializeRazorpayPayment(consultationFee, availableDoctorBalance);
       }
     } catch (error) {
@@ -182,12 +220,11 @@ const DoctorListPage = () => {
   const initializeRazorpayPayment = async (amount, walletBalanceUsed) => {
     const options = {
       key: 'rzp_test_BxtRNvflG06PTV',
-      amount: (amount - walletBalanceUsed) * 100, // Amount in paise
+      amount: (amount - walletBalanceUsed) * 100,
       currency: "INR",
-      name: "Your Company Name",
+      name: "Credent Health",
       description: "Doctor Consultation Payment",
       handler: async function (response) {
-        // This is the actual Razorpay payment ID
         const razorpayTransactionId = response.razorpay_payment_id;
 
         try {
@@ -199,8 +236,8 @@ const DoctorListPage = () => {
               timeSlot: selectedSlot.timeSlot,
               familyMemberId: selectedFamilyMember,
               type: consultationType,
-              transactionId: razorpayTransactionId, // Actual Razorpay ID
-              walletAmount: walletBalanceUsed, // How much wallet balance was used
+              transactionId: razorpayTransactionId,
+              walletAmount: walletBalanceUsed,
             }
           );
 
@@ -230,12 +267,6 @@ const DoctorListPage = () => {
     razorpayInstance.open();
   };
 
-  // Handle back navigation
-  const handleBack = () => {
-    navigate(-1);
-  };
-
-  // Handle book now
   const handleBookNow = (doctorId) => {
     const doctor = doctors.find((doc) => doc._id === doctorId);
     setSelectedDoctor(doctor);
@@ -245,32 +276,27 @@ const DoctorListPage = () => {
     fetchWalletData();
   };
 
-  // Handle date selection
   const handleDateSelect = (date) => {
     setSelectedDate(date);
     setSelectedSlot(null);
     fetchAvailableSlots(selectedDoctor._id, date);
   };
 
-  // Handle slot selection
   const handleSlotSelect = (slot) => {
     setSelectedSlot(slot);
   };
 
-  // Handle consultation type change
   const handleConsultationTypeChange = (type) => {
     setConsultationType(type);
     setSelectedDate(null);
     setSelectedSlot(null);
     setAvailableSlots([]);
 
-    // If we already have a doctor selected, fetch slots for the new type
     if (selectedDoctor && selectedDate) {
       fetchAvailableSlots(selectedDoctor._id, selectedDate);
     }
   };
 
-  // Handle new family member form change
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewFamilyMember((prev) => ({
@@ -279,7 +305,6 @@ const DoctorListPage = () => {
     }));
   };
 
-  // Handle adding new family member
   const handleAddFamilyMember = () => {
     if (!staffId) return;
     axios
@@ -304,12 +329,10 @@ const DoctorListPage = () => {
       });
   };
 
-  // Handle family member selection
   const handleFamilyMemberSelect = (familyMemberId) => {
     setSelectedFamilyMember(familyMemberId);
   };
 
-  // Close booking modal
   const closeBookingModal = () => {
     setSelectedDoctor(null);
     setSelectedDate(null);
@@ -321,7 +344,6 @@ const DoctorListPage = () => {
     setAvailableSlots([]);
   };
 
-  // Get unique dates from doctor's slots
   const getAvailableDates = () => {
     if (!selectedDoctor) return [];
 
@@ -334,20 +356,25 @@ const DoctorListPage = () => {
       slots = [...(selectedDoctor.onlineSlots || []), ...(selectedDoctor.offlineSlots || [])];
     }
 
-    // Get unique dates and sort them
     const uniqueDates = [...new Set(slots.map(slot => slot.date))].sort();
     return uniqueDates;
   };
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Filter doctors based on search term
-  const filteredDoctors = doctors.filter(
+  const searchedDoctors = filteredDoctors.filter(
     (doctor) =>
       doctor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doctor.specialization?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doctor.address?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  useEffect(() => {
+    console.log("📍 DoctorListPage Debug:");
+    console.log("Consultation Type:", consultationType);
+    console.log("Total Doctors:", doctors.length);
+    console.log("Filtered Doctors:", filteredDoctors.length);
+  }, [consultationType, doctors, filteredDoctors]);
 
   if (loading) {
     return <p className="text-center text-gray-600">Loading doctors...</p>;
@@ -362,90 +389,124 @@ const DoctorListPage = () => {
             {categoryName}
           </h1>
 
-          {/* Display doctors list */}
-          <div>
-            {/* Search Bar */}
-            <div className="mb-6 flex justify-end">
-              <div className="relative w-full sm:w-1/2 lg:w-1/3">
-                <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
-                  <i className="fa-solid fa-magnifying-glass"></i>
-                </span>
-                <input
-                  type="text"
-                  placeholder="Search Doctors..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+          {/* ✅ CONSULTATION TYPE DISPLAY AND SWITCHER
+          <div className="text-center mb-6">
+            <div className="inline-flex bg-white rounded-lg shadow-sm border p-1">
+              <button
+                onClick={() => handleConsultationTypeChange("Online")}
+                className={`px-4 py-2 rounded-md font-medium ${
+                  consultationType === "Online"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                📹 Online Consultation
+              </button>
+              <button
+                onClick={() => handleConsultationTypeChange("Offline")}
+                className={`px-4 py-2 rounded-md font-medium ${
+                  consultationType === "Offline"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                🏥 Clinic Visit
+              </button>
             </div>
+            <p className="text-sm text-gray-500 mt-2">
+              Showing doctors available for {consultationType === "Online" ? "Virtual" : "In-Clinic"} consultation
+            </p>
+          </div> */}
 
+          {/* Search Bar */}
+          <div className="mb-6 flex justify-end">
+            <div className="relative w-full sm:w-1/2 lg:w-1/3">
+              <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
+                <i className="fa-solid fa-magnifying-glass"></i>
+              </span>
+              <input
+                type="text"
+                placeholder="Search Doctors..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
 
-            {/* Doctors Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredDoctors.length === 0 ? (
-                <p className="text-center text-gray-600 col-span-full">
-                  No doctors found matching your search
+          {/* Doctors Count */}
+          <div className="mb-4">
+            <p className="text-gray-600">
+              Found {searchedDoctors.length} doctor{searchedDoctors.length !== 1 ? 's' : ''} for {consultationType.toLowerCase()} consultation
+            </p>
+          </div>
+
+          {/* Doctors Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {searchedDoctors.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-600 text-lg mb-2">
+                  No doctors found for {consultationType.toLowerCase()} consultation
                 </p>
-              ) : (
-                filteredDoctors.map((doctor, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-lg shadow-md p-5 flex flex-col justify-between hover:shadow-lg hover:scale-[1.02] transition duration-300"
-                  >
-                    {/* Top Section */}
-                    <div className="flex items-start justify-between">
-                      {/* Image + Info */}
-                      <div className="flex items-center space-x-4">
-                        <img
-                          src={`https://api.credenthealth.com${doctor.image}`}
-                          alt={doctor.name}
-                          className="w-20 h-20 object-cover rounded-square "
-                        />
-                        <div>
-                          <h2 className="text-lg font-semibold text-gray-800">
-                            {doctor.name}
-                          </h2>
-                          <p className="text-gray-600">{doctor.specialization}</p>
-                          <p className="text-gray-400 text-sm">
-                            <i className="fa-solid fa-location-dot"></i> {doctor.address}
-                          </p>
-                        </div>
+                <p className="text-gray-500 text-sm">
+                  Try changing the consultation type or search term
+                </p>
+              </div>
+            ) : (
+              searchedDoctors.map((doctor, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-lg shadow-md p-5 flex flex-col justify-between hover:shadow-lg hover:scale-[1.02] transition duration-300"
+                >
+                  {/* Top Section */}
+                  <div className="flex items-start justify-between">
+                    {/* Image + Info */}
+                    <div className="flex items-center space-x-4">
+                      <img
+                        src={`https://api.credenthealth.com${doctor.image}`}
+                        alt={doctor.name}
+                        className="w-20 h-20 object-cover rounded-square"
+                      />
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-800">
+                          {doctor.name}
+                        </h2>
+                        <p className="text-gray-600">{doctor.specialization}</p>
+                        <p className="text-gray-400 text-sm">
+                          <i className="fa-solid fa-location-dot"></i> {doctor.address}
+                        </p>
+                        <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full mt-1">
+                          {doctor.consultation_type || "Both"}
+                        </span>
                       </div>
-
-                      {/* Price */}
-                      <span className="text-black font-semibold ml-3 whitespace-nowrap">
-                        ₹{doctor.consultation_fee}
-                      </span>
                     </div>
 
-                    {/* Button */}
-                    <div className="mt-5 text-center">
-                      <button
-                        onClick={() => handleBookNow(doctor._id)}
-                        className="w-full px-4 py-2 btn btn-outline-primary text-blue-500 font-semibold rounded-pill hover:bg-blue-500 hover:text-white transition duration-300"
-                      >
-                        Book Now
-                      </button>
-                    </div>
+                    {/* Price */}
+                    <span className="text-black font-semibold ml-3 whitespace-nowrap">
+                      ₹{doctor.consultation_fee}
+                    </span>
                   </div>
-                ))
-              )}
-            </div>
+
+                  {/* Button */}
+                  <div className="mt-5 text-center">
+                    <button
+                      onClick={() => handleBookNow(doctor._id)}
+                      className="w-full px-4 py-2 btn btn-outline-primary text-blue-500 font-semibold rounded-pill hover:bg-blue-500 hover:text-white transition duration-300"
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
-
-
-          {/* Back Button */}
-          <div className="mt-8 text-center">
-          </div>
-
-
+          {/* Booking Modal */}
           {selectedDoctor && (
             <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-end sm:items-center z-50">
               <div className="bg-white w-full sm:w-[90%] md:w-[600px] rounded-t-2xl sm:rounded-2xl shadow-lg p-4 max-h-[95vh] overflow-y-auto relative">
 
-                {/* ❌ Close Modal */}
+                {/* Close Modal */}
                 <button
                   onClick={closeBookingModal}
                   className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
@@ -477,7 +538,7 @@ const DoctorListPage = () => {
                   <p className="text-sm text-gray-500">{selectedDoctor.description}</p>
                 </div>
 
-                {/* 📅 Date Selection */}
+                {/* Date Selection */}
                 <h3 className="text-base font-semibold mb-2">Choose Date</h3>
                 <div className="flex gap-2 mb-4 overflow-x-auto items-center">
                   {getAvailableDates().map((date) => {
@@ -491,7 +552,6 @@ const DoctorListPage = () => {
                           : "border-gray-300 bg-white"
                           }`}
                       >
-                        {/* ✅ Tick */}
                         {isSelected && (
                           <span className="absolute top-1 right-1 bg-green-600 rounded-full w-4 h-4 flex items-center justify-center transform translate-x-1/3 -translate-y-1/3">
                             <Check size={10} color="white" strokeWidth={3} />
@@ -507,7 +567,7 @@ const DoctorListPage = () => {
                     );
                   })}
 
-                  {/* 📅 Calendar Picker (only available dates) */}
+                  {/* Calendar Picker */}
                   <div className="min-w-[60px]">
                     <DatePicker
                       selected={selectedDate ? new Date(selectedDate) : null}
@@ -523,7 +583,7 @@ const DoctorListPage = () => {
                   </div>
                 </div>
 
-                {/* ⏰ Time Slots */}
+                {/* Time Slots */}
                 {selectedDate && (
                   <div className="mb-6">
                     <h3 className="text-base font-semibold mb-2">Choose Time</h3>
@@ -554,7 +614,7 @@ const DoctorListPage = () => {
                   </div>
                 )}
 
-                {/* 👨‍👩‍👧 Family Members */}
+                {/* Family Members */}
                 <div className="mb-6">
                   <button
                     onClick={() => setShowFamilyForm(true)}
@@ -563,19 +623,18 @@ const DoctorListPage = () => {
                     + Add Family Member
                   </button>
 
-
                   <div className="grid gap-2 max-h-32 overflow-y-auto">
                     {familyMembers.map((member) => (
                       <label
                         key={member._id}
-                        className={`p-3 rounded-lg border-2  cursor-pointer flex justify-between items-center ${selectedFamilyMember === member._id
+                        className={`p-3 rounded-lg border-2 cursor-pointer flex justify-between items-center ${selectedFamilyMember === member._id
                           ? "border-blue-200 bg-blue-50 text-primary"
                           : "border-gray-300"
                           }`}
                       >
                         <div>
                           <h4 className="font-medium">{member.fullName}</h4>
-                          <p className="text-xs ">
+                          <p className="text-xs">
                             {member.relation} • {member.age} yrs • {member.gender}
                           </p>
                         </div>
@@ -592,8 +651,7 @@ const DoctorListPage = () => {
                   </div>
                 </div>
 
-
-                {/* ✅ Book Button */}
+                {/* Book Button */}
                 <button
                   onClick={handleBooking}
                   disabled={processingPayment || !selectedFamilyMember || !selectedDate || !selectedSlot}
@@ -604,8 +662,6 @@ const DoctorListPage = () => {
               </div>
             </div>
           )}
-
-
 
           {/* Success Modal */}
           {bookingSuccess && bookingData && (
@@ -737,7 +793,6 @@ const DoctorListPage = () => {
                     <option value="Child">Child</option>
                     <option value="Other">Other</option>
                   </select>
-
                 </div>
 
                 <div className="flex justify-between">

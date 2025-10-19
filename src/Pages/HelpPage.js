@@ -1,14 +1,19 @@
-// HelpPage.js
-import React, { useState, useRef } from "react";
-import { IoArrowBack } from "react-icons/io5";
-import { FiUploadCloud } from "react-icons/fi";
-import { MdSupportAgent } from "react-icons/md"; // ✅ Support agent icon
-import Navbar from "./Navbar";
+import React, { useState, useRef } from 'react';
+import { IoArrowBack } from 'react-icons/io5';
+import { FiUploadCloud } from 'react-icons/fi';
+import { MdSupportAgent } from 'react-icons/md'; // ✅ Support agent icon
+import Navbar from './Navbar';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; // useNavigate for v6
 
 const HelpPage = () => {
   const [showForm, setShowForm] = useState(false);
-  const [fileName, setFileName] = useState("");
+  const [fileName, setFileName] = useState('');
+  const [reason, setReason] = useState('');
+  const [description, setDescription] = useState('');
+  const [showPopup, setShowPopup] = useState(false); // Popup visibility state
   const fileInputRef = useRef(null);
+  const navigate = useNavigate(); // Hook to navigate to home
 
   const handleFileClick = () => {
     fileInputRef.current.click();
@@ -17,6 +22,43 @@ const HelpPage = () => {
   const handleFileChange = (e) => {
     if (e.target.files.length > 0) {
       setFileName(e.target.files[0].name);
+    }
+  };
+
+  const handleSubmitTicket = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('file', fileInputRef.current.files[0]);
+      formData.append('reason', reason);
+      formData.append('description', description);
+
+      // Retrieve the staffId from localStorage
+      const staffId = localStorage.getItem('staffId');
+      if (!staffId) {
+        alert('You are not logged in!');
+        return;
+      }
+      formData.append('staffId', staffId);
+
+      const response = await axios.post('https://api.credenthealth.com/api/staff/support-ticket', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // Show the popup after successful submission
+      setShowPopup(true);
+
+      // Hide the popup after 3 seconds and redirect to home
+      setTimeout(() => {
+        setShowPopup(false);
+        navigate('/home'); // Use navigate to redirect to home
+      }, 10000);
+
+      alert(response.data.message); // Show response message
+    } catch (error) {
+      console.error('Error submitting support ticket:', error);
+      alert('There was an error while submitting your ticket.');
     }
   };
 
@@ -70,7 +112,11 @@ const HelpPage = () => {
               {/* Reason */}
               <div className="bg-purple-50 p-4 rounded-lg shadow-sm">
                 <label className="block mb-2 text-gray-700 font-medium">Reason</label>
-                <select className="w-full bg-transparent outline-none text-gray-600">
+                <select
+                  className="w-full bg-transparent outline-none text-gray-600"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                >
                   <option>Payment Issues</option>
                   <option>Booking Issues</option>
                   <option>Technical Issues</option>
@@ -90,6 +136,8 @@ const HelpPage = () => {
                   placeholder="Describe your issue in detail..."
                   className="w-full bg-transparent outline-none resize-none"
                   rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
 
@@ -100,7 +148,7 @@ const HelpPage = () => {
               >
                 <FiUploadCloud className="mx-auto mb-2 text-gray-400" size={28} />
                 <p className="text-gray-400">
-                  {fileName ? fileName : "Tap to select file"}
+                  {fileName ? fileName : 'Tap to select file'}
                 </p>
                 <input
                   type="file"
@@ -112,8 +160,9 @@ const HelpPage = () => {
 
               {/* Submit */}
               <button
-                disabled
-                className="w-full py-3 bg-gray-200 text-gray-400 font-semibold rounded-md shadow-sm cursor-not-allowed"
+                onClick={handleSubmitTicket}
+                disabled={!reason || !description}
+                className={`w-full py-3 ${!reason || !description ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white'} font-semibold rounded-md shadow-sm`}
               >
                 Submit
               </button>
@@ -121,6 +170,18 @@ const HelpPage = () => {
           )}
         </div>
       </div>
+
+      {/* Popup Message */}
+      {showPopup && (
+        <div className="fixed inset-0 bg-gray-700 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-md max-w-xs text-center">
+            <h2 className="text-lg font-semibold">Ticket Received</h2>
+            <p className="text-gray-600 mt-2">
+              We have received your support ticket. Our team will contact you soon.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

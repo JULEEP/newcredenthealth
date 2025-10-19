@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -34,55 +34,103 @@ const LoginPage = () => {
     }
   };
 
+  const [loading, setLoading] = useState(true);
+  
+    useEffect(() => {
+      // Show splash screen for 3 seconds
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 2000);
+  
+      return () => clearTimeout(timer);
+    }, []);
+  
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen bg-white ">
+          {/* Logo */}
+          <img
+            src="/logo.png"
+            alt="App Logo"
+            className="w-24 h-24 animate-bounce mb-4"
+          />
+  
+          {/* App/Website Name */}
+          <h1 className="text-3xl font-bold text-gray-800">Credenthealth</h1>
+  
+          {/* Tagline */}
+          <p className="mt-2 text-gray-500 animate-pulse">
+            One Platform, Total Wellness
+          </p>
+        </div>
+      );
+    }
+
   return (
-    <div className="container vh-100 d-flex align-items-center justify-content-center">
-      <div className="row shadow-lg rounded-5 w-75" style={{ minHeight: "60vh" }}>
-        {/* Left Image */}
-        <div className="col-md-6 d-none d-md-block p-0">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="flex flex-col md:flex-row shadow-lg rounded-2xl w-full max-w-4xl bg-white overflow-hidden">
+
+        {/* Left Image (desktop) */}
+        <div className="hidden md:block md:w-1/2">
           <img
             src="/logo.png"
             alt="Login Illustration"
-            className="img-fluid h-100 w-100 p-5"
-            style={{ objectFit: "cover", borderTopLeftRadius: "0.5rem", borderBottomLeftRadius: "0.5rem" }}
+            className="h-full w-full object-cover"
           />
         </div>
 
         {/* Right Form */}
-        <div className="col-12 col-md-6 d-flex align-items-center justify-content-center bg-white p-4 rounded-end">
-          <div className="w-100" style={{ maxWidth: "400px" }}>
-            <h1 className="text-center mb-4 fs-3" style={{ fontWeight: 900 }}>Login</h1>
+        <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-6 md:p-12">
+          
+          {/* Logo for mobile */}
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="w-20 h-20 mb-6 md:hidden object-contain"
+          />
 
+          <div className="w-full max-w-md">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-center mb-6">Login</h1>
 
-            {error && <div className="alert alert-danger text-center">{error}</div>}
+            {error && (
+              <div className="bg-red-100 text-red-700 p-2 mb-4 rounded text-center">
+                {error}
+              </div>
+            )}
 
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label htmlFor="email" className="form-label">Email Address</label>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block mb-1 font-medium">Email Address</label>
                 <input
                   type="email"
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="form-control"
                   placeholder="Enter your email"
                   required
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="mb-3">
-                <label htmlFor="password" className="form-label">Password</label>
+              <div>
+                <label htmlFor="password" className="block mb-1 font-medium">Password</label>
                 <input
                   type="password"
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="form-control"
                   placeholder="Enter your password"
                   required
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
-              <button type="submit" className="btn btn-primary w-100">Login</button>
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+              >
+                Login
+              </button>
             </form>
           </div>
         </div>

@@ -14,6 +14,14 @@ const DoctorCategoryPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
+  // ✅ DEBUG: Check what parameters we're receiving
+  useEffect(() => {
+    console.log("📍 DoctorCategoryPage Debug:");
+    console.log("Category from URL:", category);
+    console.log("Type from URL:", type);
+    console.log("Full URL:", window.location.href);
+  }, [category, type]);
+
   // Background color options for categories
   const bgColors = [
     "bg-blue-100",
@@ -80,19 +88,40 @@ const DoctorCategoryPage = () => {
     navigate("/home");
   };
 
-  // ✅ Special categories navigate kare doctor list pe
+  // ✅ FIXED: Special categories navigate with consultationType
   const handleSubmit = () => {
     if (selectedSpecialCategories.length === 0) {
       alert("Please select at least one special category.");
     } else {
       const selectedCategoriesString = selectedSpecialCategories.join(",");
-      navigate(`/doctor-list/${selectedCategoriesString}`);
+      
+      console.log("📍 Navigating to DoctorList with:", {
+        categories: selectedCategoriesString,
+        consultationType: type
+      });
+      
+      navigate(`/doctor-list/${selectedCategoriesString}`, {
+        state: { 
+          consultationType: type,
+          fromCategoryPage: true 
+        }
+      });
     }
   };
 
-  // ✅ Normal category navigate
+  // ✅ FIXED: Normal category navigate with consultationType
   const handleCategoryClick = (categoryName) => {
-    navigate(`/doctor-list/${categoryName}`);
+    console.log("📍 Navigating to DoctorList with:", {
+      category: categoryName,
+      consultationType: type
+    });
+    
+    navigate(`/doctor-list/${categoryName}`, {
+      state: { 
+        consultationType: type,
+        fromCategoryPage: true 
+      }
+    });
   };
 
   if (loading) {
@@ -104,8 +133,15 @@ const DoctorCategoryPage = () => {
       <Navbar />
       <div className="flex flex-col min-h-screen pb-16 lg:pb-0">
         <div className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+          {/* ✅ DISPLAY CURRENT CONSULTATION TYPE */}
+          <div className="text-center mb-4">
+            <span className="inline-block px-4 py-2 bg-blue-100 text-blue-800 rounded-full font-semibold">
+              Consultation Type: {type || "Not Specified"}
+            </span>
+          </div>
+
           <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
-            Book Clinic Visit
+            Book {type === 'Offline' ? 'Clinic Visit' : 'Virtual Consultation'}
           </h1>
 
           {/* Search Bar */}
@@ -138,6 +174,7 @@ const DoctorCategoryPage = () => {
                   </div>
                   <div className={`${bgColor} p-4 text-center`}>
                     <h2 className="text-xl font-semibold text-gray-800">{item.name}</h2>
+                    <p className="text-sm text-gray-600 mt-1">{type} Consultation</p>
                   </div>
                 </div>
               );
@@ -172,14 +209,24 @@ const DoctorCategoryPage = () => {
                   onClick={handleSubmit}
                   className="p-3 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition duration-300"
                 >
-                  Find Doctors
+                  Find Doctors ({type} Consultation)
                 </button>
               </div>
             )}
           </div>
 
-          {/* Back Button */}
-          <div className="mt-8 text-center">
+          {/* Debug Button */}
+          <div className="mt-4 text-center">
+            <button 
+              onClick={() => console.log({
+                currentType: type,
+                currentCategory: category,
+                url: window.location.href
+              })}
+              className="px-4 py-2 bg-gray-500 text-white rounded"
+            >
+              Debug Info
+            </button>
           </div>
         </div>
         <Footer />

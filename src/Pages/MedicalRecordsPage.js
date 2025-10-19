@@ -20,7 +20,7 @@ const MedicalRecordsPage = () => {
         );
 
         if (response.data.success && response.data.bookings) {
-          setBookings(response.data.bookings);
+          setBookings(response.data.bookings.slice().reverse());
         } else {
           setBookings([]);
         }

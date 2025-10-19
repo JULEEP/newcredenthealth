@@ -99,7 +99,7 @@ const NotificationsPage = () => {
     if (notifications.length > 0) {
       return (
         <div className="space-y-3">
-          {notifications.map((notification, index) => (
+          {notifications.slice().reverse().map((notification, index) => (
             <div
               key={index}
               className="bg-white rounded-xl shadow p-4 flex items-start space-x-3"

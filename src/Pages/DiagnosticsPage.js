@@ -57,6 +57,9 @@ const DiagnosticsPage = () => {
     height: "",
     weight: "",
     relation: "",
+    eyeSight: "",
+    BP: "",
+    BMI: ""
   });
   const [showFamilyForm, setShowFamilyForm] = useState(false);
 
@@ -261,6 +264,9 @@ const DiagnosticsPage = () => {
         height: "",
         weight: "",
         relation: "",
+        eyeSight: "",
+        BP: "",
+        BMI: ""
       });
       setShowFamilyForm(false);
     } catch (error) {
@@ -1009,13 +1015,19 @@ const DiagnosticsPage = () => {
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
                 </select>
-                <input
-                  type="date"
-                  name="DOB"
-                  value={newFamilyMember.DOB}
-                  onChange={handleFamilyInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
+                <div className="flex flex-col">
+                  <label htmlFor="DOB" className="mb-1 text-sm font-medium text-gray-700">
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    id="DOB"
+                    name="DOB"
+                    value={newFamilyMember.DOB}
+                    onChange={handleFamilyInputChange}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                  />
+                </div>
                 <input
                   type="number"
                   name="height"
@@ -1032,6 +1044,32 @@ const DiagnosticsPage = () => {
                   onChange={handleFamilyInputChange}
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
+                <div className="flex space-x-4">
+                  <input
+                    type="text"
+                    name="eyeSight"
+                    value={newFamilyMember.eyeSight}
+                    onChange={handleFamilyInputChange}
+                    placeholder="Eye Sight"
+                    className="w-1/3 p-3 border rounded"
+                  />
+                  <input
+                    type="number"
+                    name="BMI"
+                    value={newFamilyMember.BMI}
+                    onChange={handleFamilyInputChange}
+                    placeholder="BMI"
+                    className="w-1/3 p-3 border rounded"
+                  />
+                  <input
+                    type="text"
+                    name="BP"
+                    value={newFamilyMember.BP}
+                    onChange={handleFamilyInputChange}
+                    placeholder="BP"
+                    className="w-1/3 p-3 border rounded"
+                  />
+                </div>
                 <select
                   name="relation"
                   value={newFamilyMember.relation}

@@ -68,79 +68,77 @@ const handleNavigateToDoctorCategory = (type) => {
         ))}
       </div>
 
-      {/* Doctor Consultation Popup */}
-      {showPopup && (
+    {/* Doctor Consultation Popup */}
+{showPopup && (
+  <div
+    className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-md flex justify-center items-center z-50"
+    onClick={handlePopupClose}
+  >
+    <div
+      className="bg-white p-6 rounded-lg shadow-lg w-80"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">
+        Choose Consultation Type
+      </h3>
+
+      <div className="space-y-3">
+        {/* Visit Clinic */}
         <div
-          className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50"
-          onClick={handlePopupClose}
+          onClick={() => handleNavigateToDoctorCategory("Offline")}
+          className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
         >
-          <div
-            className="bg-white p-6 rounded-lg shadow-lg w-80"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">
-              Choose Consultation Type
-            </h3>
-
-            <div className="space-y-3">
-              {/* Visit Clinic */}
-              <div
-                onClick={() => handleNavigateToDoctorCategory("visit-clinic")}
-                className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
-              >
-                <div className="flex items-center">
-                  <img
-                    src="/images/clinic.png"
-                    alt="Visit Clinic"
-                    className="w-10 h-10 mr-3"
-                  />
-                  <div>
-                    <h4 className="font-medium text-gray-800">Visit Clinic</h4>
-                    <p className="text-xs text-gray-600">
-                      Meet the doctor in person at the clinic.
-                    </p>
-                  </div>
-                </div>
-                <i className="fa-solid fa-chevron-right text-gray-500"></i>
-              </div>
-
-              {/* Virtual Consultation */}
-              <div
-                onClick={() =>
-                  handleNavigateToDoctorCategory("virtual-consultation")
-                }
-                className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
-              >
-                <div className="flex items-center">
-                  <img
-                    src="/images/virtual.png"
-                    alt="Virtual Consultation"
-                    className="w-10 h-10 mr-3"
-                  />
-                  <div>
-                    <h4 className="font-medium text-gray-800">
-                      Virtual Consultation
-                    </h4>
-                    <p className="text-xs text-gray-600">
-                      Consult online from your home.
-                    </p>
-                  </div>
-                </div>
-                <i className="fa-solid fa-chevron-right text-gray-500"></i>
-              </div>
-            </div>
-
-            <div className="mt-4 text-center">
-              <button
-                onClick={handlePopupClose}
-                className="text-blue-500 font-semibold hover:underline"
-              >
-                Cancel
-              </button>
+          <div className="flex items-center">
+            <img
+              src="/images/clinic.png"
+              alt="Visit Clinic"
+              className="w-10 h-10 mr-3"
+            />
+            <div>
+              <h4 className="font-medium text-gray-800">Visit Clinic</h4>
+              <p className="text-xs text-gray-600">
+                Meet the doctor in person at the clinic.
+              </p>
             </div>
           </div>
+          <i className="fa-solid fa-chevron-right text-gray-500"></i>
         </div>
-      )}
+
+        {/* Virtual Consultation */}
+        <div
+          onClick={() => handleNavigateToDoctorCategory("Online")}
+          className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+        >
+          <div className="flex items-center">
+            <img
+              src="/images/virtual.png"
+              alt="Virtual Consultation"
+              className="w-10 h-10 mr-3"
+            />
+            <div>
+              <h4 className="font-medium text-gray-800">
+                Virtual Consultation
+              </h4>
+              <p className="text-xs text-gray-600">
+                Consult online from your home.
+              </p>
+            </div>
+          </div>
+          <i className="fa-solid fa-chevron-right text-gray-500"></i>
+        </div>
+      </div>
+
+      <div className="mt-4 text-center">
+        <button
+          onClick={handlePopupClose}
+          className="text-blue-500 font-semibold hover:underline"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Coming Soon Popup */}
       {showComingSoon && (
