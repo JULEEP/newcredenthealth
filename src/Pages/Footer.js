@@ -26,8 +26,8 @@ const Footer = () => {
             "description": "Credent Health - One Platform, Total Wellness. Comprehensive healthcare solutions and medical services.",
             "address": {
               "@type": "PostalAddress",
-              "streetAddress": "GROUND FLOOR BEECH E-1, MANYATA EMBASSY BUSINESS, Venkateshapura",
-              "addressLocality": "Bangalore North",
+              "streetAddress": "MSR NORTH TOWER, 16TH FLOOR, DR. PUNEETH RAJ KUMAR ROAD, MS RAMAIAH NORTH CITY, MANAYATA",
+              "addressLocality": "Bengaluru",
               "addressRegion": "Karnataka",
               "postalCode": "560045",
               "addressCountry": "IN"
@@ -176,8 +176,9 @@ const Footer = () => {
               <li className="d-flex align-items-start mb-2">
                 <FaMapMarkerAlt className="me-2 mt-1 flex-shrink-0" /> 
                 <span>
-                  GROUND FLOOR BEECH E-1, MANYATA EMBASSY BUSINESS, 
-                  Venkateshapura, Bangalore North, Bangalore- 560045, Karnataka
+                  ELTHIUM HEALTHCARE PVT LTD, MSR NORTH TOWER, 16TH FLOOR, 
+                  DR. PUNEETH RAJ KUMAR ROAD, MS RAMAIAH NORTH CITY, 
+                  MANAYATA, 560045 BENGALURU, KARNATAKA, INDIA
                 </span>
               </li>
               <li className="d-flex align-items-center mb-2">
