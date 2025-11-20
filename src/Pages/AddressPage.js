@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Navbar from "./Navbar";
 import { FaEdit, FaTrash, FaPlus, FaMapMarkerAlt } from "react-icons/fa";
+import { Helmet } from "react-helmet";
 
 const AddressPage = () => {
   const [addresses, setAddresses] = useState([]);
@@ -156,6 +157,12 @@ const AddressPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
+      <Helmet>
+        <title>Address Management | Credent Health</title>
+        <meta name="description" content="Manage your addresses for Credent Health account" />
+        <meta name="keywords" content="address, management, credent health, location" />
+      </Helmet>
+      
       <Navbar />
       <div className="flex flex-col min-h-screen pb-16 lg:pb-0">
         <div className="flex-grow px-4 py-6">

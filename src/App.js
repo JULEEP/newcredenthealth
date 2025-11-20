@@ -1,4 +1,6 @@
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { Helmet } from "react-helmet";
+
 import HomePage from "./Pages/Homepage";
 import LoginPage from "./Pages/LoginPage";
 import CartPage from "./Pages/CartPage";
@@ -19,20 +21,30 @@ import AddressPage from "./Pages/AddressPage";
 import HraPage from "./Pages/HraPage";
 import HraQuestionsPage from "./Pages/HraQuestionsPage";
 import NotificationsPage from "./Pages/NotificationsPage";
-import ProfilePage from "./Pages/ProfilePage"
+import ProfilePage from "./Pages/ProfilePage";
 import DeleteAccountPage from "./Pages/DeleteAccountPage";
 import HelpPage from "./Pages/HelpPage";
-import DoctorBlogs from './Pages/DoctorBlogs'
+import DoctorBlogs from './Pages/DoctorBlogs';
 import PrivacyAndPolicy from "./Pages/PrivacyAndPolicy";
 import TermsandConditions from "./Pages/TermsAndConditions";
 import Hraresult from "./Pages/HraResult";
-import QuestionPage from "./Pages/QuestionPage"
+import QuestionPage from "./Pages/QuestionPage";
 import MyProfile from "./Pages/MyProfile";
 
 function App() {
   return (
     <Router>
-      {/* Google Translate Widget at the Top */}
+      {/* React Helmet for dynamic head management */}
+      <Helmet>
+        <title>Credenthealth | Healthcare Solutions & Medical Services</title>
+        <meta
+          name="description"
+          content="Credenthealth - Leading healthcare provider offering medical services, health solutions, patient care and innovative medical technology."
+        />
+        <meta name="keywords" content="credenthealth, healthcare, medical services, health solutions, patient care, medical technology" />
+        <link rel="canonical" href="https://credenthealth.com" />
+      </Helmet>
+
       <Routes>
         <Route path="/home" element={<HomePage />} />
         <Route path="/" element={<LoginPage />} />
@@ -62,8 +74,7 @@ function App() {
         <Route path="/privacyandpolicy" element={<PrivacyAndPolicy />} />
         <Route path="/termsandconditions" element={<TermsandConditions />} />
         <Route path="/hra-result" element={<Hraresult />} />
-         <Route path="/questions" element={<QuestionPage />} /> {/* Define /questions route */}
-
+        <Route path="/questions" element={<QuestionPage />} />
       </Routes>
     </Router>
   );

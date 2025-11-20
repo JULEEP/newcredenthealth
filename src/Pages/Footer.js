@@ -1,4 +1,5 @@
 import React from "react";
+import { Helmet } from "react-helmet";
 import {
   FaFacebook,
   FaTwitter,
@@ -12,6 +13,38 @@ import {
 const Footer = () => {
   return (
     <footer className="bg-dark text-light py-5 px-4">
+      {/* Helmet for SEO Meta Tags */}
+      <Helmet>
+        <title>Credent Health - Healthcare Solutions & Medical Services</title>
+        <meta 
+          name="description" 
+          content="Credent Health by Elthium Healthcare Pvt Ltd - One Platform, Total Wellness. Comprehensive healthcare solutions, medical services, and patient care." 
+        />
+        <meta 
+          name="keywords" 
+          content="credent health, healthcare solutions, medical services, patient care, health management, elthium healthcare, bangalore hospitals, medical records" 
+        />
+        <meta name="author" content="Credent Health" />
+        <link rel="canonical" href="https://credenthealth.com" />
+        
+        {/* Open Graph Tags */}
+        <meta property="og:title" content="Credent Health - Healthcare Solutions & Medical Services" />
+        <meta 
+          property="og:description" 
+          content="One Platform, Total Wellness - Comprehensive healthcare solutions and medical services by Credent Health." 
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://credenthealth.com" />
+        <meta property="og:image" content="https://credenthealth.com/logo.png" />
+        <meta property="og:site_name" content="Credent Health" />
+        
+        {/* Twitter Card Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Credent Health - Healthcare Solutions" />
+        <meta name="twitter:description" content="One Platform, Total Wellness - Your trusted healthcare partner." />
+        <meta name="twitter:image" content="https://credenthealth.com/logo.png" />
+      </Helmet>
+      
       {/* Schema Structured Data for SEO */}
       <script
         type="application/ld+json"
