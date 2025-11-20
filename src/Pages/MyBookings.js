@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Navbar from "./Navbar";
+import { FaMapMarkerAlt } from 'react-icons/fa';
 
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -33,7 +34,7 @@ const MyBookings = () => {
         `https://api.credenthealth.com/api/staff/mybookings/${staffId}`
       );
       if (response.data.success) {
-        setBookings(response.data.bookings.slice().reverse());
+        setBookings(response.data.bookings);
       } else {
         setError("Failed to fetch bookings");
       }
@@ -133,6 +134,280 @@ const MyBookings = () => {
     return `${year}-${month}-${day}`;
   };
 
+  /* 🔹 Open Google Maps with address */
+  const openGoogleMaps = (address) => {
+    if (!address) {
+      alert("Address not available");
+      return;
+    }
+    
+    const encodedAddress = encodeURIComponent(address);
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    window.open(googleMapsUrl, '_blank');
+  };
+
+  // ✅ Determine Booking Type and Render Accordingly
+  const renderBookingContent = (booking) => {
+    // Diagnostic Booking (has diagnosticBookingId and serviceType)
+    if (booking.diagnosticBookingId && booking.serviceType) {
+      return (
+        <>
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex flex-col mb-2">
+              <h3 className="font-bold text-gray-800">
+                {booking.serviceType === "Home Collection" 
+                  ? "Diagnostic Consultation (Home Collection)" 
+                  : booking.serviceType === "Center Visit"
+                  ? "Diagnostic Consultation (Center Visit)"
+                  : "Diagnostic Consultation"}
+              </h3>
+            </div>
+            <span className="text-lg font-semibold text-gray-800">
+              ₹{booking.payableAmount || booking.totalPrice}
+            </span>
+          </div>
+
+          <p className="text-sm">
+            <span className="font-semibold">Booking ID:</span>{" "}
+            {booking.diagnosticBookingId}
+          </p>
+
+          <p className="text-sm">
+            <span className="font-semibold">Date & Time:</span>{" "}
+            {formatDate(booking.date)} , {booking.timeSlot}
+          </p>
+
+          {/* Package Information */}
+          {booking.package && (
+            <div className="mt-2 p-2 bg-blue-50 rounded-md">
+              <p className="text-sm font-semibold text-blue-800">
+                {booking.package.name}
+              </p>
+              <p className="text-xs text-gray-600">
+                {booking.package.totalTestsIncluded} Tests Included
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                {booking.package.description}
+              </p>
+            </div>
+          )}
+
+          {/* Diagnostic Center Address - Show for Center Visit */}
+          {booking.serviceType === "Center Visit" && booking.diagnostic && booking.diagnostic.address && (
+            <p className="text-sm mt-2 flex items-center">
+              <span className="font-semibold mr-2">Center Address:</span>
+              <span
+                className="text-blue-700 cursor-pointer hover:text-blue-500 transition-colors break-words"
+                onClick={() => openGoogleMaps(booking.diagnostic.address)}
+                title="Click to open in Google Maps"
+              >
+                <FaMapMarkerAlt className="inline-block mr-1" />
+                {booking.diagnostic.address}
+              </span>
+            </p>
+          )}
+        </>
+      );
+    }
+
+    // Doctor Consultation Booking
+    return (
+      <>
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex flex-col mb-2">
+            <h3 className="font-bold text-gray-800">
+              {booking.type === "Online"
+                ? "Doctor Online Consultation"
+                : booking.type === "Offline"
+                ? "Doctor Offline Consultation"
+                : "Doctor Consultation"}
+            </h3>
+          </div>
+          <span className="text-lg font-semibold text-gray-800">
+            ₹{booking.payableAmount || booking.totalPrice}
+          </span>
+        </div>
+
+        <p className="text-sm">
+          <span className="font-semibold">Booking ID:</span>{" "}
+          {booking.doctorConsultationBookingId || booking.bookingId}
+        </p>
+
+        <p className="text-sm">
+          <span className="font-semibold">Date & Time:</span>{" "}
+          {formatDate(booking.date)} , {booking.timeSlot}
+        </p>
+
+        {/* Doctor Address - Show only for Offline bookings */}
+        {booking.type === "Offline" && booking.doctor && booking.doctor.address && (
+          <p className="text-sm mt-2 flex items-center">
+            <span className="font-semibold mr-2">Clinic Address:</span>
+            <span
+              className="text-blue-700 cursor-pointer hover:text-blue-500 transition-colors break-words"
+              onClick={() => openGoogleMaps(booking.doctor.address)}
+              title="Click to open in Google Maps"
+            >
+              <FaMapMarkerAlt className="inline-block mr-1" />
+              {booking.doctor.address}
+            </span>
+          </p>
+        )}
+      </>
+    );
+  };
+
+  // ✅ Render Booking Details Modal Content
+  const renderBookingDetails = (booking) => {
+    // Diagnostic Booking Details
+    if (booking.diagnosticBookingId && booking.serviceType) {
+      return (
+        <>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="font-semibold">Service Type</span>
+              <span>
+                {booking.serviceType === "Home Collection" 
+                  ? "Diagnostic Consultation (Home Collection)" 
+                  : booking.serviceType === "Center Visit"
+                  ? "Diagnostic Consultation (Center Visit)"
+                  : "Diagnostic Consultation"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold">Booking ID</span>
+              <span>{booking.diagnosticBookingId}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-semibold">Date & Time</span>
+              <span>
+                {formatDate(booking.date)} - {booking.timeSlot}
+              </span>
+            </div>
+            
+            {/* Package Details */}
+            {booking.package && (
+              <>
+                <div className="flex justify-between">
+                  <span className="font-semibold">Package</span>
+                  <span className="text-right max-w-[200px] break-words">
+                    {booking.package.name}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">Tests Included</span>
+                  <span>{booking.package.totalTestsIncluded} Tests</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">Description</span>
+                  <span className="text-right max-w-[200px] break-words text-xs">
+                    {booking.package.description}
+                  </span>
+                </div>
+              </>
+            )}
+
+            {/* Diagnostic Center Details */}
+            {booking.diagnostic && (
+              <>
+                <div className="flex justify-between">
+                  <span className="font-semibold">Center Name</span>
+                  <span>{booking.diagnostic.name}</span>
+                </div>
+                {booking.diagnostic.description && (
+                  <div className="flex justify-between">
+                    <span className="font-semibold">Description</span>
+                    <span className="text-right max-w-[200px] break-words text-xs">
+                      {booking.diagnostic.description}
+                    </span>
+                  </div>
+                )}
+                {/* Show Address for Center Visit */}
+                {booking.serviceType === "Center Visit" && booking.diagnostic.address && (
+                  <div className="flex justify-between">
+                    <span className="font-semibold">Venue</span>
+                    <span 
+                      className="text-black underline cursor-pointer hover:text-blue-700 transition-colors text-right max-w-[200px] break-words"
+                      onClick={() => openGoogleMaps(booking.diagnostic.address)}
+                      title="Click to open in Google Maps"
+                    >
+                      {booking.diagnostic.address}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </>
+      );
+    }
+
+    // Doctor Consultation Details
+    return (
+      <>
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="font-semibold">Service Type</span>
+            <span>
+              {booking.type === "Online"
+                ? "Doctor Online Consultation"
+                : booking.type === "Offline"
+                ? "Doctor Offline Consultation"
+                : "Doctor Consultation"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-semibold">Booking ID</span>
+            <span>
+              {booking.doctorConsultationBookingId || booking.bookingId}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-semibold">Date & Time</span>
+            <span>
+              {formatDate(booking.date)} - {booking.timeSlot}
+            </span>
+          </div>
+          {booking.patient && (
+            <div className="flex justify-between">
+              <span className="font-semibold">Family Member</span>
+              <span>{booking.patient.name}</span>
+            </div>
+          )}
+          {booking.doctor && (
+            <>
+              <div className="flex justify-between">
+                <span className="font-semibold">Doctor Name</span>
+                <span>{booking.doctor.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Qualification</span>
+                <span>{booking.doctor.qualification}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Specialization</span>
+                <span>{booking.doctor.specialization}</span>
+              </div>
+              
+              {/* Clickable Address in Booking Details - Only for Offline */}
+              {booking.type === "Offline" && booking.doctor.address && (
+                <div className="flex justify-between">
+                  <span className="font-semibold">Venue</span>
+                  <span 
+                    className="text-black underline cursor-pointer hover:text-blue-700 transition-colors text-right max-w-[200px] break-words"
+                    onClick={() => openGoogleMaps(booking.doctor.address)}
+                    title="Click to open in Google Maps"
+                  >
+                    {booking.doctor.address}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </>
+    );
+  };
+
   // ✅ UI Starts
   if (loading) {
     return (
@@ -192,29 +467,9 @@ const MyBookings = () => {
                   key={booking.bookingId || booking._id}
                   className="bg-white rounded-lg shadow-md p-4"
                 >
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex flex-col mb-2">
-                      <h3 className="font-bold text-gray-800">
-                        {booking.type === "Online"
-                          ? "Online Consultation"
-                          : booking.type || "Consultation"}
-                      </h3>
-                    </div>
-                    <span className="text-lg font-semibold text-gray-800">
-                      ₹{booking.payableAmount || booking.totalPrice}
-                    </span>
-                  </div>
-
-                  <p className="text-sm">
-                    <span className="font-semibold">Booking ID:</span>{" "}
-                    {booking.diagnosticBookingId || booking.doctorConsultationBookingId || booking.bookingId}
-                  </p>
-
-                  <p className="text-sm">
-                    <span className="font-semibold">Date & Time:</span>{" "}
-                    {formatDate(booking.date)} , {booking.timeSlot}
-                  </p>
-                  <p className="text-sm">
+                  {renderBookingContent(booking)}
+                  
+                  <p className="text-sm mt-2">
                     <span className="font-semibold">Payment:</span>{" "}
                     ₹{booking.payableAmount || booking.totalPrice}
                   </p>
@@ -246,56 +501,21 @@ const MyBookings = () => {
           <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm flex justify-center items-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-6">
               <h3 className="text-xl font-bold mb-4">
-                {selectedBooking.type || "Online Consultation"}
+                {selectedBooking.diagnosticBookingId 
+                  ? (selectedBooking.serviceType === "Home Collection" 
+                      ? "Diagnostic Consultation (Home Collection)" 
+                      : selectedBooking.serviceType === "Center Visit"
+                      ? "Diagnostic Consultation (Center Visit)"
+                      : "Diagnostic Consultation")
+                  : (selectedBooking.type === "Online"
+                      ? "Doctor Online Consultation"
+                      : selectedBooking.type === "Offline"
+                      ? "Doctor Offline Consultation"
+                      : "Doctor Consultation")
+                }
               </h3>
 
-              {/* Info */}
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="font-semibold">Service Type</span>
-                  <span>{selectedBooking.type}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-semibold">Booking ID</span>
-                  <span>
-                    {selectedBooking.doctorConsultationBookingId ||
-                      selectedBooking.bookingId}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-semibold">Date & Time</span>
-                  <span>
-                    {formatDate(selectedBooking.date)} -{" "}
-                    {selectedBooking.timeSlot}
-                  </span>
-                </div>
-                {selectedBooking.patient && (
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Family Member</span>
-                    <span>{selectedBooking.patient.name}</span>
-                  </div>
-                )}
-                {selectedBooking.doctor && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="font-semibold">Doctor Name</span>
-                      <span>{selectedBooking.doctor.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold">Qualification</span>
-                      <span>{selectedBooking.doctor.qualification}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold">Specialization</span>
-                      <span>{selectedBooking.doctor.specialization}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold">Venue</span>
-                      <span>{selectedBooking.doctor.address}</span>
-                    </div>
-                  </>
-                )}
-              </div>
+              {renderBookingDetails(selectedBooking)}
 
               {/* Buttons - Only show if booking is not cancelled */}
               <div className="mt-6 space-y-3">
@@ -378,7 +598,7 @@ const MyBookings = () => {
                     month: "short",
                     year: "numeric",
                   })}{" "}
-                  - {selectedBooking.time}
+                  - {selectedBooking.timeSlot}
                 </p>
               </div>
 
@@ -392,11 +612,15 @@ const MyBookings = () => {
                       key={i}
                       onClick={() => {
                         setSelectedDate(new Date(d));
-                        fetchAvailableSlots(
-                          selectedBooking.doctorId._id,
-                          formatDate(d),
-                          selectedBooking.type.toLowerCase()
-                        );
+                        // For doctor consultations
+                        if (!selectedBooking.diagnosticBookingId && selectedBooking.doctorId) {
+                          fetchAvailableSlots(
+                            selectedBooking.doctorId._id,
+                            formatDate(d),
+                            selectedBooking.type.toLowerCase()
+                          );
+                        }
+                        // For diagnostic - you can add similar logic here if needed
                       }}
                       className={`flex flex-col items-center min-w-[50px] px-2 py-2 rounded-md ${selectedDate instanceof Date &&
                           selectedDate.toDateString() === d.toDateString()
@@ -440,7 +664,6 @@ const MyBookings = () => {
 
               {/* Actions */}
               <div className="flex justify-between items-center mt-6">
-                {/* Cancel Left */}
                 <button
                   onClick={() => setShowReschedule(false)}
                   className="px-3 py-1.5 rounded-full bg-gray-200 text-purple-600 text-sm font-medium"
@@ -448,19 +671,13 @@ const MyBookings = () => {
                   Cancel
                 </button>
 
-                {/* Reschedule Right */}
                 <button
                   onClick={() => {
                     if (!selectedSlot) {
                       alert("Please select a time slot first!");
                       return;
                     }
-                    const payload = {
-                      date: formatDate(selectedDate),
-                      type: selectedBooking.type.toLowerCase(),
-                      timeSlot: selectedSlot,
-                    };
-                    confirmReschedule(payload);
+                    confirmReschedule();
                   }}
                   disabled={!selectedSlot}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedSlot

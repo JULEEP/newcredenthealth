@@ -40,8 +40,10 @@ const LabTestPage = () => {
       try {
         const response = await axios.get('https://api.credenthealth.com/api/admin/alltests');
         if (response.data && response.data.tests) {
-          setTests(response.data.tests);
-          setFilteredTests(response.data.tests);
+          // Filter out tests that don't have a name
+          const validTests = response.data.tests.filter(test => test && test.name);
+          setTests(validTests);
+          setFilteredTests(validTests);
         } else {
           setError('No tests data found');
         }
@@ -56,11 +58,14 @@ const LabTestPage = () => {
     fetchTests();
   }, []);
 
-  // Filter tests based on search
+  // Filter tests based on search - WITH ERROR HANDLING
   useEffect(() => {
-    const filtered = tests.filter((test) =>
-      test.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filtered = tests.filter((test) => {
+      // Check if test and test.name exist before using toLowerCase
+      if (!test || !test.name) return false;
+      
+      return test.name.toLowerCase().includes(searchTerm.toLowerCase());
+    });
     setFilteredTests(filtered);
   }, [searchTerm, tests]);
 
@@ -89,7 +94,6 @@ const LabTestPage = () => {
       if (response.status === 200) {
         // Add to local cart state
         setCartItems(prev => [...prev, test._id]);
-        // alert(`${test.name} added to cart successfully!`);
         setIsModalOpen(false);
       } else {
         alert('Failed to add item to cart');
@@ -115,7 +119,6 @@ const LabTestPage = () => {
       if (response.status === 200) {
         // Add to local cart state
         setCartItems(prev => [...prev, test._id]);
-        // alert(`${test.name} added to cart successfully!`);
         setIsModalOpen(false);
         navigate('/cart')
       } else {
@@ -126,7 +129,6 @@ const LabTestPage = () => {
       alert('Error adding item to cart');
     }
   };
-
 
   const toggleDetails = (testId) => {
     setOpenTestId(openTestId === testId ? null : testId);
@@ -146,6 +148,11 @@ const LabTestPage = () => {
     } catch (err) {
       console.error("Error removing from cart:", err);
     }
+  };
+
+  // Safe rendering function for test properties
+  const renderTestProperty = (value, defaultValue = 'N/A') => {
+    return value || defaultValue;
   };
 
   return (
@@ -178,104 +185,120 @@ const LabTestPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTests.length > 0 ? (
               filteredTests.map((test) => (
-                <div
-                  key={test._id}
-                  className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 transition-all duration-300"
-                >
-                  {/* Top row: Name + Price */}
-                  <div className="flex justify-between items-center mb-1">
-                    <h2 className="text-base font-semibold text-gray-800 relative group pb-1">
-                      {test.name}
-                      <span className="absolute left-0 bottom-0 mt-2 h-1 bg-blue-500 rounded w-1/4 animate-underline"></span>
-                    </h2>
-                    <span className="text-base font-semibold text-gray-800">₹{test.price}</span>
-                  </div>
-
-                  {/* Small details */}
-                  <div className="flex justify-between text-xs text-gray-500 mb-2">
-                    <span>{test.fastingRequired ? 'Fasting Required' : 'No Fasting'}</span>
-                    <span>Onwards</span>
-                  </div>
-
-                  {/* Home collection badge */}
-                  {test.homeCollectionAvailable && (
-                    <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full mb-2">
-                      <FaCheck className="inline mr-1" /> Home Collection Available
-                    </span>
-                  )}
-
-                  {/* More info / Book Now */}
-                  <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                    <button
-                      className="flex items-center gap-1 font-medium hover:text-gray-700 transition-colors"
-                      onClick={() => toggleDetails(test._id)}
-                    >
-                      {openTestId === test._id ? <FaChevronUp /> : <FaChevronDown />}
-                      {openTestId === test._id ? "Less info" : "More info"}
-                    </button>
-
-
-                    <div className="flex items-center gap-2 mt-2">
-                      {cartItems.includes(test._id) ? (
-                        <>
-                          {/* Added to Cart Label */}
-                          <span className="text-sm text-gray-600 font-small">Added to Cart</span>
-                          {/* Trash Icon */}
-                          <div
-                            className="bg-red-100 text-red-600 rounded-full w-7 h-7 flex items-center justify-center cursor-pointer"
-                            onClick={() => handleRemoveFromCart(test._id)}
-                            title="Remove from cart"
-                          >
-                            <FaTrash className="w-4 h-4" />
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          {/* Book Now Button */}
-                          <button
-                            className="text-white bg-[#2E67F6] px-3 py-2 rounded hover:bg-[#2559cc] transition-colors"
-                            onClick={() => openModal(test)}
-                          >
-                            Book Now
-                          </button>
-
-                          {/* Plus Icon */}
-                          <div
-                            className="bg-blue-100 text-[#2E67F6] rounded-full w-7 h-7 flex items-center justify-center cursor-pointer"
-                            onClick={() => handleAddToCart(test)}
-                            title="Add to cart"
-                          >
-                            <FaPlus className="w-4 h-4" />
-                          </div>
-                        </>
-                      )}
+                test && test.name ? ( // ✅ Additional safety check
+                  <div
+                    key={test._id}
+                    className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 transition-all duration-300"
+                  >
+                    {/* Top row: Name + Price */}
+                    <div className="flex justify-between items-center mb-1">
+                      <h2 className="text-base font-semibold text-gray-800 relative inline-block pb-1">
+                        {renderTestProperty(test.name)}
+                        <span 
+                          className="absolute left-0 bottom-0 w-full h-1 bg-blue-500 rounded"
+                          style={{
+                            animation: "underline 0.3s ease-in-out",
+                            marginTop: "18px"
+                          }}
+                        ></span>
+                      </h2>
+                      <span className="text-base font-semibold text-gray-800">
+                        ₹{renderTestProperty(test.price, '0')}
+                      </span>
                     </div>
 
-
-                  </div>
-
-                  {/* Description / Instruction */}
-                  {openTestId === test._id && (
-                    <div className="mt-2 p-3 rounded border border-blue-100">
-                      {test.description && (
-                        <div className="mb-2">
-                          <h3 className="text-sm font-semibold text-gray-800 mb-1">Description</h3>
-                          <p className="text-sm text-gray-700 bg-blue-50 p-2 rounded">{test.description}</p>
-                        </div>
-                      )}
-                      {test.instruction && (
-                        <div>
-                          <h3 className="text-sm font-semibold text-gray-800 mb-1">Instructions</h3>
-                          <p className="text-sm text-gray-700 bg-blue-50 p-2 rounded">{test.instruction}</p>
-                        </div>
-                      )}
+                    {/* Small details */}
+                    <div className="flex justify-between text-xs text-gray-500 mb-2">
+                      <span>
+                        {test.fastingRequired ? 'Fasting Required' : 'No Fasting'}
+                      </span>
+                      <span>Onwards</span>
                     </div>
-                  )}
 
-                </div>
+                    {/* Home collection badge */}
+                    {test.homeCollectionAvailable && (
+                      <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full mb-2">
+                        <FaCheck className="inline mr-1" /> Home Collection Available
+                      </span>
+                    )}
+
+                    {/* More info / Book Now */}
+                    <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                      <button
+                        className="flex items-center gap-1 font-medium hover:text-gray-700 transition-colors"
+                        onClick={() => toggleDetails(test._id)}
+                      >
+                        {openTestId === test._id ? <FaChevronUp /> : <FaChevronDown />}
+                        {openTestId === test._id ? "Less info" : "More info"}
+                      </button>
+
+                      <div className="flex items-center gap-2 mt-2">
+                        {cartItems.includes(test._id) ? (
+                          <>
+                            {/* Added to Cart Label */}
+                            <span className="text-sm text-gray-600 font-small">Added to Cart</span>
+                            {/* Trash Icon */}
+                            <div
+                              className="bg-red-100 text-red-600 rounded-full w-7 h-7 flex items-center justify-center cursor-pointer"
+                              onClick={() => handleRemoveFromCart(test._id)}
+                              title="Remove from cart"
+                            >
+                              <FaTrash className="w-4 h-4" />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Book Now Button */}
+                            <button
+                              className="text-white bg-[#2E67F6] px-3 py-2 rounded hover:bg-[#2559cc] transition-colors"
+                              onClick={() => openModal(test)}
+                            >
+                              Book Now
+                            </button>
+
+                            {/* Plus Icon */}
+                            <div
+                              className="bg-blue-100 text-[#2E67F6] rounded-full w-7 h-7 flex items-center justify-center cursor-pointer"
+                              onClick={() => handleAddToCart(test)}
+                              title="Add to cart"
+                            >
+                              <FaPlus className="w-4 h-4" />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Description / Instruction */}
+                    {openTestId === test._id && (
+                      <div className="mt-2 p-3 rounded border border-blue-100">
+                        {test.description && (
+                          <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 mb-1">Description</h3>
+                            <p className="text-sm text-gray-700 bg-blue-50 p-2 rounded">
+                              {renderTestProperty(test.description)}
+                            </p>
+                          </div>
+                        )}
+                        {test.instruction && (
+                          <div>
+                            <h3 className="text-sm font-semibold text-gray-800 mb-1">Instructions</h3>
+                            <p className="text-sm text-gray-700 bg-blue-50 p-2 rounded">
+                              {renderTestProperty(test.instruction)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : null // Skip rendering if test or test.name is undefined
               ))
             ) : (
-              <p className="text-center text-lg text-gray-500 col-span-full">No lab tests available.</p>
+              !loading && (
+                <p className="text-center text-lg text-gray-500 col-span-full">
+                  {searchTerm ? 'No tests found matching your search.' : 'No lab tests available.'}
+                </p>
+              )
             )}
           </div>
         </main>
@@ -286,7 +309,7 @@ const LabTestPage = () => {
             <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-md">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Add to Cart</h2>
               <p className="text-gray-600 mb-6">
-                Are you sure you want to add <strong>{selectedTest.name}</strong> to your cart?
+                Are you sure you want to add <strong>{renderTestProperty(selectedTest.name)}</strong> to your cart?
               </p>
 
               <div className="flex justify-between space-x-4">
@@ -310,6 +333,15 @@ const LabTestPage = () => {
 
         <Footer />
       </div>
+
+      <style>
+        {`
+          @keyframes underline {
+            0% { transform: scaleX(0); }
+            100% { transform: scaleX(1); }
+          }
+        `}
+      </style>
     </div>
   );
 };

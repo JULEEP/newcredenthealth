@@ -29,7 +29,7 @@ const RecentActivityPage = () => {
       setPackageBooking(res.data.package || null);
     } catch (err) {
       console.error("Package booking fetch error:", err);
-      setError("No recent package booking found for this user.");
+      setError("No recent activities found for you.");
     }
   };
 

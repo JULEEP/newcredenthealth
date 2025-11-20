@@ -42,6 +42,8 @@ const DiagnosticsPage = () => {
   const [availableDates, setAvailableDates] = useState([]);
   const [slotLoading, setSlotLoading] = useState(false);
   const [slotError, setSlotError] = useState("");
+  const [showAllDates, setShowAllDates] = useState(false);
+
 
 
 
@@ -640,7 +642,7 @@ const DiagnosticsPage = () => {
                   <>
                     {/* Date Buttons */}
                     <div className="flex flex-wrap gap-2 mb-4">
-                      {availableDates.map((date, index) => {
+                      {(showAllDates ? availableDates : availableDates.slice(0, 4)).map((date, index) => {
                         const dateObj = new Date(date);
                         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                         const dayName = dayNames[dateObj.getDay()];
@@ -651,8 +653,8 @@ const DiagnosticsPage = () => {
                             key={index}
                             onClick={() => handleDateSelect(date)}
                             className={`flex flex-col items-center justify-center w-16 h-16 rounded-md text-sm relative ${selectedDate === date
-                              ? 'bg-white-600 text-black'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-white-600 text-black border border-green-500'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                               }`}
                           >
                             {selectedDate === date && (
@@ -665,15 +667,26 @@ const DiagnosticsPage = () => {
                           </button>
                         );
                       })}
-                    </div>
 
+                      {/* View All / Show Less Button */}
+                      {availableDates.length > 4 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllDates(!showAllDates)}
+                          className="text-blue-600 text-sm font-medium hover:underline self-start"
+                        >
+                          {showAllDates ? 'Show Less' : 'View All'}
+                        </button>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <p className="text-gray-600">No available dates found.</p>
                 )}
               </div>
 
-
+              {/* Time Slot Selection */}
+              {/* Time Slot Selection */}
               {/* Time Slot Selection */}
               {selectedDate && selectedOption && (
                 <div className="mb-6">
@@ -683,46 +696,36 @@ const DiagnosticsPage = () => {
                   {slotError && <p className="text-red-500">{slotError}</p>}
 
                   {!slotLoading && availableSlots.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {availableSlots.slice(0, 10).map((slot, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleTimeSelect(slot.timeSlot)}
-                          className={`p-3 rounded-md border-2 text-sm font-medium ${selectedTime === slot.timeSlot
-                            ? 'bg-green-100 text-black border-green-400'
-                            : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-                            }`}
-                        >
-                          {slot.timeSlot}
-                        </button>
-                      ))}
-
-                      {/* Show remaining slots if viewAll is true */}
-                      {showAll &&
-                        availableSlots.slice(10).map((slot, index) => (
+                    <>
+                      {/* Slot buttons row */}
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {(showAll ? availableSlots : availableSlots.slice(0, 4)).map((slot, index) => (
                           <button
-                            key={index + 10}
+                            key={index}
                             onClick={() => handleTimeSelect(slot.timeSlot)}
                             className={`p-3 rounded-md border-2 text-sm font-medium ${selectedTime === slot.timeSlot
-                              ? 'bg-green-100 text-black border-green-400'
-                              : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                                ? 'bg-green-100 text-black border-green-400'
+                                : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
                               }`}
                           >
                             {slot.timeSlot}
                           </button>
                         ))}
+                      </div>
 
-                      {/* View All / Show Less Button */}
-                      {availableSlots.length > 10 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowAll(!showAll)}
-                          className="btn btn-lg text-blue-600 text-sm font-medium hover:underline self-start"
-                        >
-                          {showAll ? 'Show Less' : 'View All'}
-                        </button>
+                      {/* View All / Show Less button below the row */}
+                      {availableSlots.length > 4 && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setShowAll(!showAll)}
+                            className="text-blue-600 text-sm font-medium hover:underline"
+                          >
+                            {showAll ? 'Show Less' : 'View All'}
+                          </button>
+                        </div>
                       )}
-                    </div>
+                    </>
                   )}
 
                   {!slotLoading && availableSlots.length === 0 && !slotError && (
@@ -730,7 +733,6 @@ const DiagnosticsPage = () => {
                   )}
                 </div>
               )}
-
 
 
 
@@ -845,23 +847,26 @@ const DiagnosticsPage = () => {
 
 
               {/* Action Buttons */}
-              <div className="flex justify-between mt-6 pt-4 border-t border-gray-200">
+              <div className="flex flex-col-reverse sm:flex-row justify-between mt-6 pt-4 border-t border-gray-200 gap-3 sm:gap-0">
+
                 <button
                   onClick={handlePopupClose}
-                  className="px-6 py-2 bg-gray-500 text-white font-semibold rounded-md hover:bg-gray-600 transition-colors"
+                  className="w-full sm:w-auto px-6 py-2 bg-gray-500 text-white font-semibold rounded-md hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
+
                 <button
                   onClick={handleBooking}
                   disabled={isBookingDisabled() || processingPayment}
-                  className={`px-6 py-2 bg-blue-600 text-white font-semibold rounded-md transition-colors ${isBookingDisabled() || processingPayment
+                  className={`w-full sm:w-auto px-6 py-2 bg-blue-600 text-white font-semibold rounded-md transition-colors ${isBookingDisabled() || processingPayment
                     ? 'opacity-50 cursor-not-allowed'
                     : 'hover:bg-blue-700'
                     }`}
                 >
                   {processingPayment ? "Processing..." : "Confirm Booking"}
                 </button>
+
               </div>
             </div>
           </div>
@@ -1077,14 +1082,15 @@ const DiagnosticsPage = () => {
                   className="w-full p-2 border border-gray-300 rounded-md"
                 >
                   <option value="">Select Relation</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Wife">Wife</option>
+                  <option value="Husband">Husband</option>
+                  <option value="Son">Son</option>
+                  <option value="Daughter">Daughter</option>
                   <option value="Father">Father</option>
                   <option value="Mother">Mother</option>
-                  <option value="Brother">Brother</option>
-                  <option value="Sister">Sister</option>
-                  <option value="Spouse">Spouse</option>
-                  <option value="Child">Child</option>
-                  <option value="Other">Other</option>
                 </select>
+
               </div>
 
               <div className="flex justify-between">

@@ -1,4 +1,3 @@
-// HraPage.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack } from "react-icons/io5"; // back arrow icon
@@ -8,12 +7,14 @@ import Navbar from "./Navbar";
 const HraPage = () => {
   const [showMessage, setShowMessage] = useState(true);
   const [hraData, setHraData] = useState([]);
+  const [filteredHraData, setFilteredHraData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [backendMessage, setBackendMessage] = useState("");
 
   const BASE_URL = "https://api.credenthealth.com";
   const staffId = localStorage.getItem("staffId");
+  const gender = localStorage.getItem("gender"); // Get gender from localStorage
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,8 +28,23 @@ const HraPage = () => {
           }
           if (response.data.hras && response.data.hras.length > 0) {
             setHraData(response.data.hras);
+            
+            // Filter categories based on gender directly
+            const filteredData = response.data.hras.filter(item => {
+              // If gender is Male, exclude all female-related categories
+              if (gender === "Male") {
+                // Exclude categories with gender-specific keyword (e.g., "female", "women", etc.)
+                return item.gender !== "Female"; // Exclude Female categories for males
+              }
+
+              // For females or other genders, show all categories
+              return true;
+            });
+
+            setFilteredHraData(filteredData);
           } else {
             setHraData([]);
+            setFilteredHraData([]);
           }
           setLoading(false);
         })
@@ -40,7 +56,7 @@ const HraPage = () => {
       setError("Staff ID not found.");
       setLoading(false);
     }
-  }, [staffId]);
+  }, [staffId, gender]);
 
   const handleStart = () => {
     setShowMessage(false);
@@ -56,6 +72,21 @@ const HraPage = () => {
 
   const handleCategoryClick = (categoryName) => {
     navigate(`/hra-questions?category=${categoryName}`);
+  };
+
+  const getImageUrl = (image) => {
+    // If image is null, undefined, or empty
+    if (!image) {
+      return "https://cdn.dribbble.com/users/2001042/screenshots/4951997/developmentanimation.gif"; // default placeholder image
+    }
+
+    // If already a valid external URL
+    if (image.startsWith("http")) {
+      return image;
+    }
+
+    // If multer-style upload path
+    return `${BASE_URL.replace(/\/$/, "")}/${image.replace(/^\//, "")}`;
   };
 
   return (
@@ -108,13 +139,6 @@ const HraPage = () => {
                 and will be used for analysis to get you a score.
               </p>
 
-              {/* Backend message */}
-              {backendMessage && (
-                <p className="text-green-500 text-center font-semibold mb-4">
-                  {backendMessage}
-                </p>
-              )}
-
               {/* Start Button */}
               <button
                 onClick={handleStart}
@@ -129,18 +153,19 @@ const HraPage = () => {
                 <p>Loading...</p>
               ) : error ? (
                 <p>{error}</p>
-              ) : hraData.length > 0 ? (
-                hraData.map((item, index) => (
+              ) : filteredHraData.length > 0 ? (
+                filteredHraData.map((item, index) => (
                   <div
                     key={index}
                     className="flex items-center p-3 border rounded-md cursor-pointer"
                     onClick={() => handleCategoryClick(item.hraName)}
                   >
                     <img
-                      src={BASE_URL + item.hraImage}
+                      src={getImageUrl(item.hraImage)}
                       alt={item.hraName}
                       className="w-12 h-12 object-cover rounded mr-3"
                     />
+
                     <p className="text-base font-semibold">{item.hraName}</p>
                   </div>
                 ))
@@ -153,7 +178,6 @@ const HraPage = () => {
       </div>
     </div>
   );
-
 };
 
 export default HraPage;

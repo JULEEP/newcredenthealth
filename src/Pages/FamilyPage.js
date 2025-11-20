@@ -61,7 +61,7 @@ const FamilyPage = () => {
       // Update family member API call
       axios
         .put(
-          `https://api.credenthealth.com/api/staff/update-family/${staffId}/${selectedMember._id}`,
+          `https://api.credenthealth.com/api/staff/updatefamily/${staffId}/${selectedMember._id}`,
           newFamilyMember
         )
         .then((response) => {
@@ -132,7 +132,7 @@ const FamilyPage = () => {
   const handleRemove = (memberId) => {
     axios
       .delete(
-        `https://api.credenthealth.com/api/staff/remove-family/${staffId}/${memberId}`
+        `https://api.credenthealth.com/api/staff/removefamily/${staffId}/${memberId}`
       )
       .then(() => {
         setFamilyMembers(
@@ -143,14 +143,16 @@ const FamilyPage = () => {
   };
 
   const genderOptions = ["Male", "Female", "Other"];
-  const relationOptions = [
-    "Father",
-    "Mother",
-    "Brother",
-    "Sister",
-    "Spouse",
-    "Friend",
-  ];
+ const relationOptions = [
+  "Spouse",
+  "Wife",
+  "Husband",
+  "Son",
+  "Daughter",
+  "Father",
+  "Mother",
+];
+
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">

@@ -39,29 +39,30 @@ const DoctorListPage = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const { consultationType: passedConsultationType } = location.state || {};
   const [consultationType, setConsultationType] = useState(passedConsultationType || "Online");
+  const [showAllSlots, setShowAllSlots] = useState(false);
   const navigate = useNavigate();
   const staffId = localStorage.getItem("staffId");
 
   // ✅ FILTER DOCTORS BASED ON CONSULTATION TYPE
   const filterDoctorsByConsultationType = (doctorsList, type) => {
     if (!doctorsList || doctorsList.length === 0) return [];
-    
+
     return doctorsList.filter(doctor => {
       if (!doctor.consultation_type) return true;
-      
+
       switch (type) {
         case "Online":
-          return (doctor.consultation_type === "Online" || 
-                  doctor.consultation_type === "Both") && 
-                 doctor.onlineSlots && 
-                 doctor.onlineSlots.length > 0;
-        
+          return (doctor.consultation_type === "Online" ||
+            doctor.consultation_type === "Both") &&
+            doctor.onlineSlots &&
+            doctor.onlineSlots.length > 0;
+
         case "Offline":
-          return (doctor.consultation_type === "Offline" || 
-                  doctor.consultation_type === "Both") && 
-                 doctor.offlineSlots && 
-                 doctor.offlineSlots.length > 0;
-        
+          return (doctor.consultation_type === "Offline" ||
+            doctor.consultation_type === "Both") &&
+            doctor.offlineSlots &&
+            doctor.offlineSlots.length > 0;
+
         default:
           return true;
       }
@@ -75,11 +76,11 @@ const DoctorListPage = () => {
       .then((response) => {
         const allDoctors = response.data;
         setDoctors(allDoctors);
-        
+
         // ✅ Apply consultation type filter
         const filtered = filterDoctorsByConsultationType(allDoctors, consultationType);
         setFilteredDoctors(filtered);
-        
+
         setLoading(false);
       })
       .catch((error) => {
@@ -584,33 +585,49 @@ const DoctorListPage = () => {
                 </div>
 
                 {/* Time Slots */}
+                {/* Time Slots */}
                 {selectedDate && (
                   <div className="mb-6">
                     <h3 className="text-base font-semibold mb-2">Choose Time</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {loadingSlots ? (
-                        <p>Loading slots...</p>
-                      ) : availableSlots.filter(slot => !slot.isExpired).length > 0 ? (
-                        availableSlots
-                          .filter(slot => !slot.isExpired)
-                          .map((slot) => (
+
+                    {loadingSlots ? (
+                      <p>Loading slots...</p>
+                    ) : availableSlots.filter(slot => !slot.isExpired).length > 0 ? (
+                      <>
+                        {/* Show Only 4 Slots Initially */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {(showAllSlots
+                            ? availableSlots.filter(slot => !slot.isExpired)
+                            : availableSlots.filter(slot => !slot.isExpired).slice(0, 4)
+                          ).map((slot) => (
                             <button
                               key={slot._id}
                               onClick={() => handleSlotSelect(slot)}
-                              className={`p-3 rounded-lg border text-center ${selectedSlot === slot
-                                ? "bg-blue-600 text-white border-blue-600"
-                                : "bg-gray-100 text-gray-700 border-gray-300"
+                              className={`p-3 rounded-lg border text-center transition ${selectedSlot === slot
+                                  ? "bg-blue-600 text-white border-blue-600"
+                                  : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-blue-50"
                                 }`}
                             >
                               {slot.timeSlot}
                             </button>
-                          ))
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          No slots available for this date
-                        </p>
-                      )}
-                    </div>
+                          ))}
+                        </div>
+
+                        {/* View All / View Less Button */}
+                        {availableSlots.filter(slot => !slot.isExpired).length > 4 && (
+                          <div className="text-center mt-3">
+                            <button
+                              onClick={() => setShowAllSlots(!showAllSlots)}
+                              className="text-blue-600 text-sm font-medium hover:underline"
+                            >
+                              {showAllSlots ? "View Less" : "View All"}
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500">No slots available for this date</p>
+                    )}
                   </div>
                 )}
 
@@ -785,14 +802,15 @@ const DoctorListPage = () => {
                     className="w-full p-2 border border-gray-300 rounded-md"
                   >
                     <option value="">Select Relation</option>
+                    <option value="Spouse">Spouse</option>
+                    <option value="Wife">Wife</option>
+                    <option value="Husband">Husband</option>
+                    <option value="Son">Son</option>
+                    <option value="Daughter">Daughter</option>
                     <option value="Father">Father</option>
                     <option value="Mother">Mother</option>
-                    <option value="Brother">Brother</option>
-                    <option value="Sister">Sister</option>
-                    <option value="Spouse">Spouse</option>
-                    <option value="Child">Child</option>
-                    <option value="Other">Other</option>
                   </select>
+
                 </div>
 
                 <div className="flex justify-between">

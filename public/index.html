@@ -1,70 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8" />
-
-  <!-- Logo from the local public/images folder for VSD Cars Self Driving Cars -->
-  <link rel="icon" href="/logo.png" />
-  <link rel="apple-touch-icon" href="/logo.png" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- Google Translate Integration -->
-  <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement(
-        { pageLanguage: 'en' },
-        'google_translate_element'
-      );
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    <!-- SEO Meta Tags -->
+    <title>Credenthealth | Healthcare Solutions & Medical Services</title>
+    <meta name="description" content="Credenthealth - Leading healthcare provider offering medical services, health solutions, patient care and innovative medical technology. Your trusted health partner.">
+    <meta name="keywords" content="credenthealth, healthcare, medical services, health solutions, patient care, medical technology, health services, medical care, healthcare solutions">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="author" content="Credenthealth">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Credenthealth - Trusted Healthcare & Medical Solutions">
+    <meta property="og:description" content="Credenthealth provides comprehensive healthcare services, medical solutions and innovative health management systems for better patient care.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://credenthealth.com">
+    <meta property="og:image" content="https://credenthealth.com/logo.png">
+    <meta property="og:site_name" content="Credenthealth">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://credenthealth.com" />
+    
+    <!-- Schema.org Structured Data - VERY IMPORTANT -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MedicalOrganization",
+      "name": "Credenthealth",
+      "url": "https://credenthealth.com",
+      "logo": "https://credenthealth.com/logo.png",
+      "description": "Leading healthcare provider offering medical services and health solutions",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Bangalore",
+        "addressRegion": "Karnataka",
+        "postalCode": "560045",
+        "addressCountry": "IN"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+91-7619196856",
+        "contactType": "customer service"
+      },
+      "sameAs": [
+        "https://www.facebook.com/credenthealth",
+        "https://www.linkedin.com/company/credenthealth",
+        "https://twitter.com/credenthealth"
+      ]
     }
-  </script>
-  <script type="text/javascript"
-    src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    </script>
 
-    <head>
-  <!-- Other head elements -->
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-</head>
+    <!-- Favicon -->
+    <link rel="icon" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
 
-  <title>Credenthealth</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
-    integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
-    crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
 
-  <!-- Smooth scroll styling -->
-  <style>
-    html {
-      scroll-behavior: smooth;
-    }
+    <!-- Google Translate -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement(
+                { pageLanguage: 'en' },
+                'google_translate_element'
+            );
+        }
+    </script>
+    <script type="text/javascript"
+        src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    section {
-      scroll-margin-top: 80px;
-    }
-
-    #home,
-    #features,
-    #pricing,
-    #about,
-    #whyus,
-    #contact,
-    #vision,
-    #mission,
-    #aboutus {
-      scroll-margin-top: 80px;
-    }
-  </style>
+    <style>
+        html { scroll-behavior: smooth; }
+        section { scroll-margin-top: 80px; }
+        
+        /* Loading animation for better UX */
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 
 <body>
-  <noscript>You need to enable JavaScript to run this app.</noscript>
-  <div id="root"></div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-    crossorigin="anonymous"></script>
-</body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    
+    <!-- Google Translate Element -->
+    <div id="google_translate_element" class="d-none"></div>
+    
+    <!-- React Root Element - THIS IS VERY IMPORTANT -->
+    <div id="root">
+        <!-- Loading fallback -->
+        <div class="d-flex justify-content-center align-items-center min-vh-100">
+            <div class="text-center">
+                <div class="loading-spinner mb-3"></div>
+                <h3>Credenthealth</h3>
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Additional scripts can go here -->
+</body>
 </html>

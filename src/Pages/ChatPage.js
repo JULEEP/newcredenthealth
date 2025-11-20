@@ -247,7 +247,7 @@ const ChatPage = () => {
               </div>
             ) : error ? (
               <div className="flex justify-center items-center h-full">
-                <p className="text-red-500">{error}</p>
+                <p className="text-blue-900">{error}</p>
               </div>
             ) : doctors.length === 0 ? (
               <div className="flex justify-center items-center h-full">

@@ -27,10 +27,15 @@ const AddressPage = () => {
       axios
         .get(`https://api.credenthealth.com/api/staff/getaddresses/${staffId}`)
         .then((response) => {
-          setAddresses(response.data.addresses);
+          if (response.data && response.data.addresses) {
+            setAddresses(response.data.addresses);
+          } else {
+            setAddresses([]);
+          }
           setLoading(false);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error("Error fetching addresses:", error);
           setError("Error fetching addresses");
           setLoading(false);
         });
@@ -49,34 +54,57 @@ const AddressPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError("");
+
+    // Validate required fields
+    if (!newAddress.street || !newAddress.city || !newAddress.state || !newAddress.country || !newAddress.postalCode) {
+      setError("Please fill all required fields");
+      return;
+    }
 
     if (editMode && selectedAddress) {
+      // Update address
       axios
         .put(
           `https://api.credenthealth.com/api/staff/update-address/${staffId}/${selectedAddress._id}`,
           newAddress
         )
         .then((response) => {
-          const updatedAddresses = addresses.map((address) =>
-            address._id === selectedAddress._id
-              ? response.data.address
-              : address
-          );
-          setAddresses(updatedAddresses);
-          resetForm();
+          if (response.data && response.data.updatedAddress) {
+            const updatedAddresses = addresses.map((address) =>
+              address._id === selectedAddress._id
+                ? response.data.updatedAddress
+                : address
+            );
+            setAddresses(updatedAddresses);
+            resetForm();
+          } else {
+            setError("Invalid response from server");
+          }
         })
-        .catch(() => setError("Error updating address"));
+        .catch((error) => {
+          console.error("Error updating address:", error);
+          setError("Error updating address");
+        });
     } else {
+      // Add new address
       axios
         .post(
           `https://api.credenthealth.com/api/staff/create-address/${staffId}`,
           newAddress
         )
         .then((response) => {
-          setAddresses([...addresses, response.data.address]);
-          resetForm();
+          if (response.data && response.data.address) {
+            setAddresses([...addresses, response.data.address]);
+            resetForm();
+          } else {
+            setError("Invalid response from server");
+          }
         })
-        .catch(() => setError("Error adding address"));
+        .catch((error) => {
+          console.error("Error adding address:", error);
+          setError("Error adding address");
+        });
     }
   };
 
@@ -92,31 +120,38 @@ const AddressPage = () => {
     setEditMode(false);
     setSelectedAddress(null);
     setIsFormVisible(false);
+    setError("");
   };
 
   const handleEdit = (address) => {
     setNewAddress({
-      street: address.street,
-      city: address.city,
-      state: address.state,
-      country: address.country,
-      postalCode: address.postalCode,
-      addressType: address.addressType,
+      street: address.street || "",
+      city: address.city || "",
+      state: address.state || "",
+      country: address.country || "",
+      postalCode: address.postalCode || "",
+      addressType: address.addressType || "",
     });
     setEditMode(true);
     setSelectedAddress(address);
     setIsFormVisible(true);
+    setError("");
   };
 
   const handleRemove = (addressId) => {
-    axios
-      .delete(
-        `https://api.credenthealth.com/api/staff/remove-address/${staffId}/${addressId}`
-      )
-      .then(() => {
-        setAddresses(addresses.filter((a) => a._id !== addressId));
-      })
-      .catch(() => setError("Error removing address"));
+    if (window.confirm("Are you sure you want to delete this address?")) {
+      axios
+        .delete(
+          `https://api.credenthealth.com/api/staff/remove-address/${staffId}/${addressId}`
+        )
+        .then(() => {
+          setAddresses(addresses.filter((a) => a._id !== addressId));
+        })
+        .catch((error) => {
+          console.error("Error removing address:", error);
+          setError("Error removing address");
+        });
+    }
   };
 
   return (
@@ -198,69 +233,79 @@ const AddressPage = () => {
               <h2 className="text-xl font-bold mb-6">
                 {editMode ? "Edit Address" : "Add Address"}
               </h2>
+              
+              {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+              
               <form onSubmit={handleSubmit} className="space-y-4">
                 <input
                   type="text"
                   name="street"
                   value={newAddress.street}
                   onChange={handleInputChange}
-                  placeholder="Street"
-                  className="w-full p-3 border rounded"
+                  placeholder="Street *"
+                  className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
                 <input
                   type="text"
                   name="city"
                   value={newAddress.city}
                   onChange={handleInputChange}
-                  placeholder="City"
-                  className="w-full p-3 border rounded"
+                  placeholder="City *"
+                  className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
                 <input
                   type="text"
                   name="state"
                   value={newAddress.state}
                   onChange={handleInputChange}
-                  placeholder="State"
-                  className="w-full p-3 border rounded"
+                  placeholder="State *"
+                  className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
                 <input
                   type="text"
                   name="country"
                   value={newAddress.country}
                   onChange={handleInputChange}
-                  placeholder="Country"
-                  className="w-full p-3 border rounded"
+                  placeholder="Country *"
+                  className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
                 <input
                   type="text"
                   name="postalCode"
                   value={newAddress.postalCode}
                   onChange={handleInputChange}
-                  placeholder="Postal Code"
-                  className="w-full p-3 border rounded"
+                  placeholder="Postal Code *"
+                  className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
                 <input
                   type="text"
                   name="addressType"
                   value={newAddress.addressType}
                   onChange={handleInputChange}
-                  placeholder="Address Type (Home, Office)"
-                  className="w-full p-3 border rounded"
+                  placeholder="Address Type (Home, Office, etc.)"
+                  className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
 
-                <button
-                  type="submit"
-                  className="w-full bg-blue-500 text-white py-3 rounded-lg"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="w-full bg-gray-300 text-gray-700 py-3 rounded-lg mt-2"
-                >
-                  Cancel
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition"
+                  >
+                    {editMode ? "Update Address" : "Save Address"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-400 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </form>
             </>
           )}

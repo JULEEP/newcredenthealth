@@ -25,6 +25,9 @@ import HelpPage from "./Pages/HelpPage";
 import DoctorBlogs from './Pages/DoctorBlogs'
 import PrivacyAndPolicy from "./Pages/PrivacyAndPolicy";
 import TermsandConditions from "./Pages/TermsAndConditions";
+import Hraresult from "./Pages/HraResult";
+import QuestionPage from "./Pages/QuestionPage"
+import MyProfile from "./Pages/MyProfile";
 
 function App() {
   return (
@@ -52,11 +55,15 @@ function App() {
         <Route path="/hra-questions" element={<HraQuestionsPage />} />
         <Route path="/notification" element={<NotificationsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/myprofile" element={<MyProfile />} />
         <Route path="/delete-account" element={<DeleteAccountPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/doctorblogs" element={<DoctorBlogs />} />
         <Route path="/privacyandpolicy" element={<PrivacyAndPolicy />} />
         <Route path="/termsandconditions" element={<TermsandConditions />} />
+        <Route path="/hra-result" element={<Hraresult />} />
+         <Route path="/questions" element={<QuestionPage />} /> {/* Define /questions route */}
+
       </Routes>
     </Router>
   );
