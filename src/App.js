@@ -30,6 +30,8 @@ import TermsandConditions from "./Pages/TermsAndConditions";
 import Hraresult from "./Pages/HraResult";
 import QuestionPage from "./Pages/QuestionPage";
 import MyProfile from "./Pages/MyProfile";
+import ChangePassword from "./Pages/ChangePassword"
+import PackageBookingPage from "./Pages/PackageBookingPage"
 
 function App() {
   return (
@@ -58,6 +60,7 @@ function App() {
         <Route path="/scan&xrays" element={<ScanAndXRayPage />} />
         <Route path="/prescriptions" element={<PrescriptionPage />} />
         <Route path="/diagnostics" element={<DiagnosticsPage />} />
+        <Route path="/packagebooking" element={<PackageBookingPage />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/medicalrecord" element={<MedicalRecordsPage />} />
         <Route path="/chat" element={<ChatPage />} />
@@ -75,6 +78,7 @@ function App() {
         <Route path="/termsandconditions" element={<TermsandConditions />} />
         <Route path="/hra-result" element={<Hraresult />} />
         <Route path="/questions" element={<QuestionPage />} />
+        <Route path="/changepassword" element={<ChangePassword />} />
       </Routes>
     </Router>
   );

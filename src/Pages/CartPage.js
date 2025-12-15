@@ -47,6 +47,11 @@ const CartPage = () => {
         .then((response) => {
           setCartItems(response.data.items);
           setGrandTotal(response.data.grandTotal);
+          
+          // Clear diagnosticIds from localStorage if cart becomes empty
+          if (response.data.items.length === 0) {
+            localStorage.removeItem('cartDiagnosticIds');
+          }
         })
         .catch(() => {
           setError("Error removing item from cart");
@@ -55,7 +60,35 @@ const CartPage = () => {
   };
 
   const handleRedirect = () => {
-    navigate("/diagnostics");
+    // ✅ Get ALL diagnostic IDs from localStorage as array
+    const diagnosticIdsJSON = localStorage.getItem('cartDiagnosticIds');
+    
+    console.log('🔍 Cart Diagnostic IDs from localStorage:', diagnosticIdsJSON);
+    
+    if (!diagnosticIdsJSON) {
+      alert("No diagnostic centers found for the selected scans/tests. Please add scans/tests to cart again.");
+      return;
+    }
+    
+    try {
+      const diagnosticIds = JSON.parse(diagnosticIdsJSON);
+      
+      if (!Array.isArray(diagnosticIds) || diagnosticIds.length === 0) {
+        alert("Invalid diagnostic center data. Please try again.");
+        return;
+      }
+      
+      // ✅ Navigate to diagnostics page with ALL diagnostic IDs as ARRAY
+      navigate("/diagnostics", { 
+        state: { 
+          diagnosticIds, // ✅ ARRAY of IDs
+          fromCart: true
+        } 
+      });
+    } catch (err) {
+      console.error("Error parsing diagnostic IDs:", err);
+      alert("Error processing diagnostic centers. Please try again.");
+    }
   };
 
   return (
@@ -63,7 +96,7 @@ const CartPage = () => {
       <Navbar />
       <div className="flex flex-col min-h-screen pb-16 lg:pb-0">
         <button
-          onClick={() => window.history.back()} // ya navigate(-1) use kar sakte ho agar react-router use ho raha hai
+          onClick={() => window.history.back()}
           className="mr-2 p-1 rounded-full hover:bg-gray-200 transition-colors"
         >
           <svg
@@ -115,7 +148,7 @@ const CartPage = () => {
                   {/* Home Collection */}
                   {item.homeCollectionAvailable && (
                     <div className="mt-3 inline-flex items-center bg-green-100 text-green-700 text-sm px-3 py-1 rounded-lg">
-                      <FaHome className="mr-2 text-green-600" /> {/* Home icon instead of check circle */}
+                      <FaHome className="mr-2 text-green-600" />
                     </div>
                   )}
 

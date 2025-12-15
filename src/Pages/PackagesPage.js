@@ -10,8 +10,8 @@ const PackagesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [openPackageId, setOpenPackageId] = useState(null); // Track open package
-  const [openTestId, setOpenTestId] = useState(null); // Track open test accordion
+  const [openPackageId, setOpenPackageId] = useState(null);
+  const [openTestId, setOpenTestId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,7 +27,8 @@ const PackagesPage = () => {
         const response = await axios.get(
           `https://api.credenthealth.com/api/staff/stafftestpackages/${staffId}`
         );
-        if (response.data.message === '✅ Packages fetched successfully.') {
+        
+        if (response.data && response.data.myPackages) {
           setPackages(response.data.myPackages);
         } else {
           setError('Failed to fetch packages');
@@ -42,18 +43,20 @@ const PackagesPage = () => {
     fetchPackages();
   }, []);
 
-  // Also update the PackagesPage to store package info when navigating
   const handleBooking = (pkg) => {
-    // Store package info in localStorage
-    localStorage.setItem('packageId', pkg.packageId);
-    localStorage.setItem('packageName', pkg.packageName);
-    localStorage.setItem('packagePrice', pkg.price);
-
-    navigate('/diagnostics');
+    navigate('/packagebooking', {
+      state: {
+        isPackageBooking: true,
+        packageId: pkg.packageId || pkg._id,
+        packageName: pkg.packageName,
+        packagePrice: pkg.price
+      }
+    });
   };
+
   const togglePackage = (pkgId) => {
     setOpenPackageId(openPackageId === pkgId ? null : pkgId);
-    setOpenTestId(null); // reset test accordion when switching package
+    setOpenTestId(null);
   };
 
   const toggleTest = (testId) => {
@@ -69,7 +72,6 @@ const PackagesPage = () => {
       <Navbar />
       <div className="flex flex-col min-h-screen pb-16 lg:pb-0">
         <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8">
-          {/* Page Header */}
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-3xl font-bold text-gray-800">Packages</h1>
             <div className="flex items-center gap-3">
@@ -79,7 +81,6 @@ const PackagesPage = () => {
             </div>
           </div>
 
-          {/* Search Bar */}
           <div className="relative max-w-md mb-6">
             <input
               type="text"
@@ -99,7 +100,6 @@ const PackagesPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPackages.length > 0 ? (
               filteredPackages.map((pkg) => {
-                // Show only first two tests by default
                 const initialTests = pkg.includedTests ? pkg.includedTests.slice(0, 2) : [];
                 const hasMoreTests = pkg.includedTests && pkg.includedTests.length > 2;
 
@@ -108,7 +108,6 @@ const PackagesPage = () => {
                     key={pkg._id}
                     className="bg-white p-6 rounded-lg shadow-md transition-transform transform hover:scale-105"
                   >
-                    {/* Package Name and Price */}
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-xl font-semibold text-gray-800 relative group">
                         {pkg.packageName}
@@ -119,22 +118,13 @@ const PackagesPage = () => {
                             animation: 'lineExpand 2s ease forwards',
                           }}
                         ></span>
-
-                        <style>
-                          {`
-      @keyframes lineExpand {
-        0% { width: 0; }
-        100% { width: 100%; }
-      }
-    `}
-                        </style>                    </h3>
+                      </h3>
                       <div className="text-right">
                         <p className="text-lg font-semibold text-gray-800">₹{pkg.price}</p>
                         <p className="text-sm text-gray-500">Onwards</p>
                       </div>
                     </div>
 
-                    {/* Short Description */}
                     {pkg.description && (
                       <p className="text-gray-700 text-sm mb-2 p-2 rounded">
                         {pkg.description.length > 100
@@ -144,12 +134,9 @@ const PackagesPage = () => {
                       </p>
                     )}
 
-                    {/* Total Tests */}
                     <p className="text-gray-500 text-sm mb-2">
                       Total Tests included: {pkg.totalTestsIncluded}
                     </p>
-
-
 
                     {initialTests.length > 0 && (
                       <div className="mb-3">
@@ -157,9 +144,7 @@ const PackagesPage = () => {
                         {initialTests.map((test, idx) => (
                           <div key={idx} className="mb-2">
                             <div className="w-full flex items-center text-gray-700 text-sm font-medium p-2 rounded">
-                              {/* Arrow Icon */}
-                              <FaArrowRight className="text-black-500 mr-2" />
-                              {/* Test Name */}
+                              <FaArrowRight className="text-blue-500 mr-2" />
                               <span>{test.name}</span>
                             </div>
                           </div>
@@ -167,12 +152,10 @@ const PackagesPage = () => {
                       </div>
                     )}
 
-
-                    {/* Show More/Hide Button */}
                     {pkg.includedTests && pkg.includedTests.length > 0 && (
                       <div className="mt-4 flex justify-between">
                         <button
-                          className="flex items-center text-grey-100 text-sm font-medium hover:underline"
+                          className="flex items-center text-blue-600 text-sm font-medium hover:underline"
                           onClick={() => togglePackage(pkg._id)}
                         >
                           {openPackageId === pkg._id ? 'Hide' : 'Show more'}
@@ -182,9 +165,8 @@ const PackagesPage = () => {
                             <FaChevronDown className="ml-1" />
                           )}
                         </button>
-                        {/* Book Now */}
                         <button
-                          className="btn btn-sm text-white btn-primary p-2 px-2 rounded "
+                          className="bg-[#2E67F6] text-white px-4 py-2 rounded hover:bg-[#2559cc] transition"
                           onClick={() => handleBooking(pkg)}
                         >
                           Book Now
@@ -192,37 +174,33 @@ const PackagesPage = () => {
                       </div>
                     )}
 
-                    {/* Expanded Details (When Show More is clicked) */}
                     {openPackageId === pkg._id && (
                       <div className="mt-2 border-t border-gray-200 pt-2">
-                        {/* All Tests List */}
                         {pkg.includedTests && pkg.includedTests.length > 0 && (
                           <div className="mb-4">
                             <h4 className="font-medium text-gray-700 mb-2">All Tests:</h4>
                             {pkg.includedTests.map((test, idx) => (
                               <div key={idx} className="mb-2">
-                                {/* Test Header */}
                                 <button
                                   className="w-full flex justify-between items-center text-gray-700 text-sm font-medium p-2 bg-gray-100 rounded hover:bg-gray-200 transition"
-                                  onClick={() => toggleTest(test.testId)}
+                                  onClick={() => toggleTest(test._id || idx)}
                                 >
                                   <span>
                                     {test.name} ({test.subTestCount} Tests)
                                   </span>
-                                  {openTestId === test.testId ? <FaChevronUp /> : <FaChevronDown />}
+                                  {openTestId === (test._id || idx) ? <FaChevronUp /> : <FaChevronDown />}
                                 </button>
 
-                                {/* Test Details */}
-                                {openTestId === test.testId && (
+                                {openTestId === (test._id || idx) && (
                                   <div className="pl-5 mt-1 text-gray-600 text-sm">
-                                    {test.description && (
+                                    {pkg.description && (
                                       <p className="mb-1">
-                                        <strong>Description:</strong> {test.description}
+                                        <strong>Description:</strong> {pkg.description}
                                       </p>
                                     )}
-                                    {test.precautions && (
+                                    {pkg.precautions && (
                                       <p className="mb-1">
-                                        <strong>Precautions:</strong> {test.precautions}
+                                        <strong>Precautions:</strong> {pkg.precautions}
                                       </p>
                                     )}
                                     {test.subTests && test.subTests.length > 0 && (
@@ -242,7 +220,6 @@ const PackagesPage = () => {
                           </div>
                         )}
 
-                        {/* Package Description (Full) */}
                         {pkg.description && (
                           <div className="mb-3">
                             <h4 className="font-medium text-gray-700 mb-1">Description:</h4>
@@ -250,7 +227,6 @@ const PackagesPage = () => {
                           </div>
                         )}
 
-                        {/* Package Instructions */}
                         {pkg.precautions && (
                           <div className="mb-3">
                             <h4 className="font-medium text-gray-700 mb-1">Precautions:</h4>
@@ -270,6 +246,15 @@ const PackagesPage = () => {
 
         <Footer />
       </div>
+      
+      <style>
+        {`
+          @keyframes lineExpand {
+            0% { width: 0; }
+            100% { width: 100%; }
+          }
+        `}
+      </style>
     </div>
   );
 };

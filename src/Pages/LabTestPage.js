@@ -14,12 +14,10 @@ const LabTestPage = () => {
   const [selectedTest, setSelectedTest] = useState(null);
   const [openTestId, setOpenTestId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [cartItems, setCartItems] = useState([]);
 
   const navigate = useNavigate();
   const staffId = localStorage.getItem('staffId');
-
-  // Add new state for cart items
-  const [cartItems, setCartItems] = useState([]);
 
   // Fetch cart items on page load
   useEffect(() => {
@@ -29,39 +27,95 @@ const LabTestPage = () => {
       .get(`https://api.credenthealth.com/api/staff/mycart/${staffId}`)
       .then((response) => {
         if (response.data.items) {
-          setCartItems(response.data.items.map(item => item.itemId)); // store item IDs in state
+          setCartItems(response.data.items.map(item => item.itemId));
         }
       })
       .catch(err => console.error("Error fetching cart items:", err));
   }, [staffId]);
 
-  useEffect(() => {
-    const fetchTests = async () => {
-      try {
-        const response = await axios.get('https://api.credenthealth.com/api/admin/alltests');
-        if (response.data && response.data.tests) {
-          // Filter out tests that don't have a name
-          const validTests = response.data.tests.filter(test => test && test.name);
-          setTests(validTests);
-          setFilteredTests(validTests);
-        } else {
-          setError('No tests data found');
-        }
-      } catch (err) {
-        console.error("Error fetching tests:", err);
-        setError('Error fetching data');
-      } finally {
-        setLoading(false);
+ useEffect(() => {
+  const fetchTests = async () => {
+    if (!staffId) {
+      setError("Staff ID not found. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.get(`https://api.credenthealth.com/api/staff/gettests/${staffId}`);
+      
+      console.log("Backend Response:", response.data);
+      
+      if (response.data && response.data.data) {
+        const testsData = response.data.data;
+        
+        const transformedTests = testsData.map(item => {
+          const testData = item.testId || item;
+          
+          // Get all diagnostic IDs from multiple sources
+          const diagnosticIds = [];
+          
+          // 1. From item.diagnosticId (single)
+          if (item.diagnosticId) {
+            diagnosticIds.push(item.diagnosticId._id || item.diagnosticId);
+          }
+          
+          // 2. From testData.diagnostics array
+          if (testData.diagnostics && Array.isArray(testData.diagnostics)) {
+            testData.diagnostics.forEach(id => {
+              if (id && !diagnosticIds.includes(id)) {
+                diagnosticIds.push(id);
+              }
+            });
+          }
+          
+          // 3. From allDiagnostics array (if backend returns it)
+          if (item.allDiagnostics && Array.isArray(item.allDiagnostics)) {
+            item.allDiagnostics.forEach(diag => {
+              if (diag._id && !diagnosticIds.includes(diag._id)) {
+                diagnosticIds.push(diag._id);
+              }
+            });
+          }
+          
+          return {
+            _id: testData._id,
+            name: testData.name || item.testName,
+            price: testData.price || item.price,
+            fastingRequired: testData.fastingRequired || item.fastingRequired,
+            homeCollectionAvailable: testData.homeCollectionAvailable || item.homeCollectionAvailable,
+            reportIn24Hrs: testData.reportIn24Hrs || item.reportIn24Hrs,
+            reportHour: testData.reportHour || item.reportHour,
+            description: testData.description || item.description,
+            instruction: testData.instruction || item.instruction,
+            precaution: testData.precaution || item.precaution,
+            category: testData.category || item.category,
+            subTests: testData.subTests || item.subTests,
+            diagnosticIds: diagnosticIds, // ✅ ARRAY of ALL diagnostic IDs
+            diagnosticName: item.diagnosticId?.name || testData.diagnosticName || 'Multiple Diagnostics'
+          };
+        });
+        
+        console.log("Transformed Tests with ALL Diagnostic IDs:", transformedTests);
+        setTests(transformedTests);
+        setFilteredTests(transformedTests);
+      } else {
+        setError('No tests available');
       }
-    };
+    } catch (err) {
+      console.error("Error fetching tests:", err);
+      setError('Error fetching data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchTests();
-  }, []);
+  fetchTests();
+}, [staffId]);
 
-  // Filter tests based on search - WITH ERROR HANDLING
+  // Filter tests based on search
   useEffect(() => {
     const filtered = tests.filter((test) => {
-      // Check if test and test.name exist before using toLowerCase
       if (!test || !test.name) return false;
       
       return test.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -79,56 +133,79 @@ const LabTestPage = () => {
     setSelectedTest(null);
   };
 
-  const handleAddToCart = async (test) => {
-    if (!staffId) {
-      alert('Staff ID not found in localStorage!');
-      return;
-    }
+ const handleAddToCart = async (test) => {
+  if (!staffId) {
+    alert('Staff ID not found in localStorage!');
+    return;
+  }
 
-    try {
-      const response = await axios.post(
-        `https://api.credenthealth.com/api/staff/addcart/${staffId}`,
-        { itemId: test._id, action: 'inc' }
-      );
-
-      if (response.status === 200) {
-        // Add to local cart state
-        setCartItems(prev => [...prev, test._id]);
-        setIsModalOpen(false);
-      } else {
-        alert('Failed to add item to cart');
+  try {
+    const response = await axios.post(
+      `https://api.credenthealth.com/api/staff/addcart/${staffId}`,
+      { 
+        itemId: test._id, 
+        action: 'inc',
+        diagnosticId: test.diagnosticIds && test.diagnosticIds.length > 0 
+          ? test.diagnosticIds[0] // First diagnostic as primary
+          : null
       }
-    } catch (err) {
-      console.error("❌ Error adding to cart:", err);
-      alert('Error adding item to cart');
+    );
+
+    if (response.status === 200) {
+      // ✅ Store ALL diagnostic IDs in localStorage as array
+      if (test.diagnosticIds && test.diagnosticIds.length > 0) {
+        localStorage.setItem('cartDiagnosticIds', JSON.stringify(test.diagnosticIds));
+        console.log('✅ All Diagnostic IDs stored:', test.diagnosticIds);
+      }
+      
+      // Add to local cart state
+      setCartItems(prev => [...prev, test._id]);
+      setIsModalOpen(false);
+      alert(`${test.name} added to cart successfully!`);
+    } else {
+      alert('Failed to add item to cart');
     }
-  };
+  } catch (err) {
+    console.error("❌ Error adding to cart:", err);
+    alert('Error adding item to cart');
+  }
+};
 
   const handleAddToCartNavigate = async (test) => {
-    if (!staffId) {
-      alert('Staff ID not found in localStorage!');
-      return;
-    }
+  if (!staffId) {
+    alert('Staff ID not found in localStorage!');
+    return;
+  }
 
-    try {
-      const response = await axios.post(
-        `https://api.credenthealth.com/api/staff/addcart/${staffId}`,
-        { itemId: test._id, action: 'inc' }
-      );
-
-      if (response.status === 200) {
-        // Add to local cart state
-        setCartItems(prev => [...prev, test._id]);
-        setIsModalOpen(false);
-        navigate('/cart')
-      } else {
-        alert('Failed to add item to cart');
+  try {
+    const response = await axios.post(
+      `https://api.credenthealth.com/api/staff/addcart/${staffId}`,
+      { 
+        itemId: test._id, 
+        action: 'inc',
+        diagnosticId: test.diagnosticIds && test.diagnosticIds.length > 0 
+          ? test.diagnosticIds[0]
+          : null
       }
-    } catch (err) {
-      console.error("❌ Error adding to cart:", err);
-      alert('Error adding item to cart');
+    );
+
+    if (response.status === 200) {
+      // ✅ Store ALL diagnostic IDs in localStorage as array
+      if (test.diagnosticIds && test.diagnosticIds.length > 0) {
+        localStorage.setItem('cartDiagnosticIds', JSON.stringify(test.diagnosticIds));
+      }
+      
+      setCartItems(prev => [...prev, test._id]);
+      setIsModalOpen(false);
+      navigate('/cart');
+    } else {
+      alert('Failed to add item to cart');
     }
-  };
+  } catch (err) {
+    console.error("❌ Error adding to cart:", err);
+    alert('Error adding item to cart');
+  }
+};
 
   const toggleDetails = (testId) => {
     setOpenTestId(openTestId === testId ? null : testId);
@@ -144,15 +221,44 @@ const LabTestPage = () => {
       );
       if (response.status === 200) {
         setCartItems(prev => prev.filter(id => id !== testId));
+        alert('Item removed from cart');
+        
+        // If cart becomes empty, clear diagnostic IDs
+        if (response.data.items.length === 0) {
+          localStorage.removeItem('cartDiagnosticIds');
+        }
       }
     } catch (err) {
       console.error("Error removing from cart:", err);
+      alert('Error removing item from cart');
     }
   };
 
   // Safe rendering function for test properties
   const renderTestProperty = (value, defaultValue = 'N/A') => {
     return value || defaultValue;
+  };
+
+  // Show diagnostic info
+  const renderDiagnosticInfo = (test) => {
+    if (test.diagnosticIds && test.diagnosticIds.length > 1) {
+      return (
+        <div className="mt-1">
+          <span className="text-xs text-blue-600 font-medium">
+            Available at {test.diagnosticIds.length} diagnostic centers
+          </span>
+        </div>
+      );
+    } else if (test.diagnosticIds && test.diagnosticIds.length === 1) {
+      return (
+        <div className="mt-1">
+          <span className="text-xs text-gray-500">
+            {test.diagnosticName}
+          </span>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -185,23 +291,26 @@ const LabTestPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTests.length > 0 ? (
               filteredTests.map((test) => (
-                test && test.name ? ( // ✅ Additional safety check
+                test && test.name ? (
                   <div
                     key={test._id}
                     className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 transition-all duration-300"
                   >
                     {/* Top row: Name + Price */}
                     <div className="flex justify-between items-center mb-1">
-                      <h2 className="text-base font-semibold text-gray-800 relative inline-block pb-1">
-                        {renderTestProperty(test.name)}
-                        <span 
-                          className="absolute left-0 bottom-0 w-full h-1 bg-blue-500 rounded"
-                          style={{
-                            animation: "underline 0.3s ease-in-out",
-                            marginTop: "18px"
-                          }}
-                        ></span>
-                      </h2>
+                      <div className="flex-1">
+                        <h2 className="text-base font-semibold text-gray-800 relative inline-block pb-1">
+                          {renderTestProperty(test.name)}
+                          <span 
+                            className="absolute left-0 bottom-0 w-full h-1 bg-blue-500 rounded"
+                            style={{
+                              animation: "underline 0.3s ease-in-out",
+                              marginTop: "18px"
+                            }}
+                          ></span>
+                        </h2>
+                        {renderDiagnosticInfo(test)}
+                      </div>
                       <span className="text-base font-semibold text-gray-800">
                         ₹{renderTestProperty(test.price, '0')}
                       </span>
@@ -272,6 +381,18 @@ const LabTestPage = () => {
                     {/* Description / Instruction */}
                     {openTestId === test._id && (
                       <div className="mt-2 p-3 rounded border border-blue-100">
+                        {/* Show diagnostic centers info */}
+                        {test.diagnosticIds && test.diagnosticIds.length > 0 && (
+                          <div className="mb-3">
+                            <h3 className="text-sm font-semibold text-gray-800 mb-1">
+                              Available at {test.diagnosticIds.length} Diagnostic Center(s)
+                            </h3>
+                            <p className="text-xs text-gray-600">
+                              This test is available at multiple diagnostic centers
+                            </p>
+                          </div>
+                        )}
+                        
                         {test.description && (
                           <div className="mb-2">
                             <h3 className="text-sm font-semibold text-gray-800 mb-1">Description</h3>
@@ -291,7 +412,7 @@ const LabTestPage = () => {
                       </div>
                     )}
                   </div>
-                ) : null // Skip rendering if test or test.name is undefined
+                ) : null
               ))
             ) : (
               !loading && (
@@ -308,10 +429,17 @@ const LabTestPage = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-md">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Add to Cart</h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-2">
                 Are you sure you want to add <strong>{renderTestProperty(selectedTest.name)}</strong> to your cart?
               </p>
-
+              
+              {/* Show diagnostic info in modal */}
+              {selectedTest.diagnosticIds && selectedTest.diagnosticIds.length > 1 && (
+                <p className="text-sm text-blue-600 mb-4">
+                  ⓘ This test is available at {selectedTest.diagnosticIds.length} diagnostic centers
+                </p>
+              )}
+              
               <div className="flex justify-between space-x-4">
                 <button
                   className="flex-1 text-white bg-gray-600 p-3 rounded-full hover:bg-gray-500 transition-colors"

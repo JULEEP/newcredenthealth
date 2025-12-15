@@ -15,48 +15,113 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [termsError, setTermsError] = useState("");
+  const [needsTermsAcceptance, setNeedsTermsAcceptance] = useState(true);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 2000);
+    
+    // Check localStorage for terms acceptance
+    const checkTermsAcceptance = () => {
+      const acceptedTerms = localStorage.getItem("acceptedTerms");
+      if (acceptedTerms === "true") {
+        setNeedsTermsAcceptance(false);
+      }
+    };
+    
+    checkTermsAcceptance();
+    
     return () => clearTimeout(timer);
   }, []);
 
-  // Login handler
-  const handleSubmit = async (e) => {
+  // Terms and Conditions link click handler
+  const handleTermsClick = (e) => {
     e.preventDefault();
-    setError("");
-
-    if (!email || !password) {
-      setError("Please fill in both fields.");
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        "https://api.credenthealth.com/api/staff/login-staff",
-        { email, password },
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-      if (response.status === 200) {
-        const { staff } = response.data;
-        const { _id, name, gender } = staff;
-
-        localStorage.setItem("staffId", _id);
-        localStorage.setItem("name", name);
-        localStorage.setItem("gender", gender);
-        sessionStorage.setItem("staff", JSON.stringify(staff));
-
-        navigate("/home");
-      }
-    } catch (err) {
-      setError("Invalid email or password.");
-    }
+    // Open terms page in new tab
+    window.open("https://healthcare-terms-policies.onrender.com/terms-and-conditions", "_blank");
   };
 
-  // Forgot password handler
+  // Privacy Policy link click handler
+  const handlePrivacyClick = (e) => {
+    e.preventDefault();
+    // Open privacy policy page in new tab
+    window.open("https://healthcare-terms-policies.onrender.com/privacy-and-policy", "_blank");
+  };
+
+  // Login handler - Modified version
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setTermsError("");
+
+  if (!email || !password) {
+    setError("Please fill in both fields.");
+    return;
+  }
+
+  if (needsTermsAcceptance && !acceptTerms) {
+    setTermsError("You must accept the terms and conditions to continue.");
+    return;
+  }
+
+  try {
+    const response = await axios.post(
+      "https://api.credenthealth.com/api/staff/login-staff",
+      { 
+        email, 
+        password,
+        acceptTermsAndConditions: needsTermsAcceptance ? acceptTerms : false
+      },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    if (response.status === 200) {
+      const { staff, companyInfo } = response.data;
+      
+      // Terms and conditions handling
+      if (staff.termsAndConditionsAccepted) {
+        setNeedsTermsAcceptance(false);
+        localStorage.setItem("acceptedTerms", "true");
+      }
+
+      // Store basic staff info
+      localStorage.setItem("staffId", staff._id);
+      localStorage.setItem("name", staff.name);
+      localStorage.setItem("gender", staff.gender);
+      
+      // Store companyId (from staff object or companyInfo)
+      const companyIdToStore = staff.companyId || (companyInfo && companyInfo.companyId);
+      if (companyIdToStore) {
+        localStorage.setItem("companyId", companyIdToStore);
+      }
+      
+      // Store companyName if available
+      if (companyInfo && companyInfo.companyName) {
+        localStorage.setItem("companyName", companyInfo.companyName);
+      }
+      
+      // Store full objects
+      sessionStorage.setItem("staff", JSON.stringify(staff));
+      if (companyInfo) {
+        sessionStorage.setItem("companyInfo", JSON.stringify(companyInfo));
+      }
+
+      navigate("/home");
+    }
+  } catch (err) {
+    if (err.response?.data?.message?.includes('Terms and conditions')) {
+      setTermsError(err.response.data.message);
+      setNeedsTermsAcceptance(true);
+    } else {
+      setError("Invalid email or password.");
+    }
+  }
+};
+
+  // Forgot password handler - UNCHANGED
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setForgotError("");
@@ -79,10 +144,9 @@ const LoginPage = () => {
         setForgotEmail("");
         setNewPassword("");
 
-        // Automatically close modal after 1.5 seconds
         setTimeout(() => {
           setShowForgotModal(false);
-          setForgotSuccess(""); // clear success message
+          setForgotSuccess("");
         }, 1500);
       }
     } catch (err) {
@@ -158,9 +222,59 @@ const LoginPage = () => {
                 </button>
               </div>
 
+              {/* Show terms checkbox only if needed */}
+              {needsTermsAcceptance && (
+                <div className="flex items-start pt-2">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={acceptTerms}
+                    onChange={(e) => {
+                      setAcceptTerms(e.target.checked);
+                      if (e.target.checked) {
+                        setTermsError(""); // Clear error when user checks
+                      }
+                    }}
+                    className="mt-1 mr-3 h-5 w-5 text-blue-600 rounded"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="terms" className="text-sm text-gray-700 cursor-pointer">
+                      I agree to the{" "}
+                      <a 
+                        href="https://healthcare-terms-policies.onrender.com/terms-and-conditions"
+                        onClick={handleTermsClick}
+                        className="text-blue-600 font-bold hover:text-blue-800 hover:underline transition-colors duration-200"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Terms and Conditions
+                      </a>
+                      {" and "}
+                      <a 
+                        href="https://healthcare-terms-policies.onrender.com/privacy-and-policy"
+                        onClick={handlePrivacyClick}
+                        className="text-blue-600 font-bold hover:text-blue-800 hover:underline transition-colors duration-200"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Privacy Policy
+                      </a>
+                    </label>
+                    {termsError && (
+                      <div className="mt-1 text-red-600 text-sm">{termsError}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+                className={`w-full py-2 rounded transition ${
+                  needsTermsAcceptance && !acceptTerms
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                } text-white`}
+                disabled={needsTermsAcceptance && !acceptTerms}
               >
                 Login
               </button>

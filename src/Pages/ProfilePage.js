@@ -12,7 +12,8 @@ import {
   FaBell,
   FaEdit,
   FaCamera,
-  FaUser // Added FaUser icon for profile
+  FaUser,
+  FaKey // Added FaKey icon for change password
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
@@ -30,7 +31,8 @@ const ProfilePage = () => {
   const staffId = localStorage.getItem("staffId");
 
   const menuItems = [
-    { icon: <FaUser className="text-blue-600" />, label: "My Profile", path: "/myprofile" }, // Added My Profile
+    { icon: <FaUser className="text-blue-600" />, label: "My Profile", path: "/myprofile" },
+    { icon: <FaKey className="text-green-600" />, label: "Change Password", path: "/changepassword" }, // Added Change Password
     { icon: <FaWallet className="text-blue-500" />, label: "Wallet", path: "/wallet" },
     { icon: <FaQuestionCircle className="text-purple-500" />, label: "Help", path: "/help" },
     { icon: <FaUsers className="text-green-500" />, label: "Family Members", path: "/family" },

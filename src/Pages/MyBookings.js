@@ -1,5 +1,4 @@
-// MyBookings.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Navbar from "./Navbar";
 import { FaMapMarkerAlt } from 'react-icons/fa';
@@ -15,7 +14,12 @@ const MyBookings = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState("");
   const staffId = localStorage.getItem("staffId");
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDateString, setSelectedDateString] = useState("");
+  
+  // ✅ CRITICAL FIX: useRef ka use karo real-time value ke liye
+  const selectedDateStringRef = useRef("");
+  const selectedBookingRef = useRef(null);
 
   useEffect(() => {
     if (!staffId) {
@@ -69,69 +73,176 @@ const MyBookings = () => {
     }
   };
 
-  // ✅ Fetch Slots for Reschedule
-  const fetchAvailableSlots = async (doctorId, date, consultationType) => {
-    if (!doctorId || !date) return;
-    setLoadingSlots(true);
-    try {
-      const response = await axios.get(
-        `https://api.credenthealth.com/api/staff/doctor-slots/${doctorId}?date=${date}&type=${consultationType}`
+  // ✅ SIMPLE DATE FORMATTER - NO TIMEZONE GAMES
+  const formatDateForAPI = (date) => {
+    if (!date) return '';
+    
+    // Direct date components - sabse simple
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    
+    const result = `${year}-${month}-${day}`;
+    
+    // Debug log
+    console.log(`📅 formatDateForAPI: ${date.getDate()} -> ${result}`);
+    
+    return result;
+  };
+
+  // ✅ Format date for display in Indian format
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  // ✅ CRITICAL FIX: Real-time fetch function with refs
+ // ✅ CRITICAL FIX: Real-time fetch function with refs - ERROR MESSAGE FIXED
+const fetchAvailableSlots = async (dateToUse = null) => {
+  // Use passed date OR ref value (ref has real-time value)
+  const dateString = dateToUse || selectedDateStringRef.current;
+  const booking = selectedBookingRef.current;
+  
+  if (!booking || !dateString) {
+    console.log("❌ Missing booking or date");
+    return;
+  }
+  
+  console.log("🔥🔥🔥 FINAL DATE FOR API:", dateString);
+  console.log("🔥 State value (may be old):", selectedDateString);
+  
+  setLoadingSlots(true);
+  
+  try {
+    let response;
+    
+    // Diagnostic Booking
+    if (booking.diagnosticBookingId && booking.serviceType) {
+      const diagnosticId = booking.diagnostic?.diagnosticId?._id;
+      if (!diagnosticId) {
+        alert("Diagnostic center information not found.");
+        return;
+      }
+      
+      console.log(`📞 API CALL: date=${dateString}, type=${booking.serviceType}`);
+      
+      response = await axios.get(
+        `https://api.credenthealth.com/api/staff/diagnosticslots/${diagnosticId}?date=${dateString}&type=${booking.serviceType}`
+      );
+      
+      if (response.data.slots && response.data.slots.length > 0) {
+        setAvailableSlots(response.data.slots);
+      } else if (response.data.homeCollectionSlots || response.data.centerVisitSlots) {
+        const slots = booking.serviceType === "Home Collection" 
+          ? response.data.homeCollectionSlots 
+          : response.data.centerVisitSlots;
+        setAvailableSlots(slots || []);
+      } else {
+        setAvailableSlots([]);
+        // ✅ YEH MESSAGE CHANGE KARO
+        // alert("No slots available for the selected date");
+        // Iski jagah yeh message dikhao:
+        console.log("No slots available for selected date");
+        // UI mein automatically dikh jayega "No slots available for this date"
+      }
+    } 
+    // Doctor Booking
+    else if (booking.doctorId) {
+      response = await axios.get(
+        `https://api.credenthealth.com/api/staff/doctor-slots/${booking.doctorId}?date=${dateString}&type=${booking.type}`
       );
       if (response.data.slots && response.data.slots.length > 0) {
         setAvailableSlots(response.data.slots);
       } else {
         setAvailableSlots([]);
-        alert("No slots available for the selected date");
+        // ✅ YEH BHI CHANGE KARO
+        // alert("No slots available for the selected date");
+        console.log("No slots available for selected date");
       }
-    } catch (error) {
-      console.error("Error fetching slots:", error);
-      alert("Error fetching available slots");
-      setAvailableSlots([]);
-    } finally {
-      setLoadingSlots(false);
+    } else {
+      alert("Cannot reschedule this booking type");
+      return;
     }
-  };
-
+    
+    console.log("✅ API Response received");
+  } catch (error) {
+    console.error("Error fetching slots:", error);
+    // ✅ YEH ERROR MESSAGE BHI CHANGE KARO
+    // alert("Error fetching available slots: " + (error.response?.data?.message || error.message));
+    if (error.response?.status === 404) {
+      // Backend ne "No valid slots found" message bheja hai
+      console.log("No slots available. Please try another date.");
+      // Alert nahi dikhana, bas UI mein empty slots array dikhao
+    } else {
+      // Other errors ke liye normal alert
+      alert("Error fetching slots. Please try again.");
+    }
+    setAvailableSlots([]);
+  } finally {
+    setLoadingSlots(false);
+  }
+};
   // ✅ Confirm Reschedule
   const confirmReschedule = async () => {
-    if (!selectedBooking || !selectedDate || !selectedSlot) {
+    const dateString = selectedDateStringRef.current;
+    const booking = selectedBookingRef.current;
+    
+    if (!booking || !dateString || !selectedSlot) {
       alert("Please select a date and slot before confirming.");
       return;
     }
 
+    console.log("✅ Rescheduling with:", dateString);
+
     try {
-      const response = await axios.put(
-        `https://api.credenthealth.com/api/staff/reschedulebooking/${staffId}/${selectedBooking.bookingId || selectedBooking._id}`,
-        {
-          newDay: new Date(selectedDate).toLocaleDateString("en-US", {
+      let endpoint;
+      let data;
+      
+      // Diagnostic Reschedule
+      if (booking.diagnosticBookingId) {
+        endpoint = `https://api.credenthealth.com/api/staff/diagreschedule/${staffId}/${booking.bookingId || booking._id}`;
+        data = {
+          newDate: dateString,
+          newTimeSlot: selectedSlot,
+          serviceType: booking.serviceType
+        };
+      } 
+      // Doctor Reschedule
+      else {
+        endpoint = `https://api.credenthealth.com/api/staff/reschedulebooking/${staffId}/${booking.bookingId || booking._id}`;
+        data = {
+          newDay: new Date(dateString).toLocaleDateString("en-US", {
             weekday: "long",
           }),
-          newDate: selectedDate,
+          newDate: dateString,
           newTimeSlot: selectedSlot,
-        }
-      );
+        };
+      }
 
-      if (response.data.isSuccessfull) {
+      const response = await axios.put(endpoint, data);
+
+      if (response.data.isSuccessfull || response.data.success) {
         alert("Booking rescheduled successfully.");
         fetchBookings();
         setShowReschedule(false);
         setSelectedBooking(null);
+        selectedBookingRef.current = null;
+        setSelectedSlot("");
+        setAvailableSlots([]);
+        setSelectedDateString("");
+        selectedDateStringRef.current = "";
       } else {
         alert(response.data.message || "Failed to reschedule booking.");
       }
     } catch (error) {
       console.error("Reschedule Error:", error);
-      alert("Error while rescheduling booking.");
+      alert("Error while rescheduling booking: " + (error.response?.data?.message || error.message));
     }
-  };
-
-  /* 🔹 Helper function */
-  const formatDate = (date) => {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
   };
 
   /* 🔹 Open Google Maps with address */
@@ -146,9 +257,78 @@ const MyBookings = () => {
     window.open(googleMapsUrl, '_blank');
   };
 
+  // ✅ Handle Reschedule Button Click - FIXED WITH REFS
+  const handleRescheduleClick = (booking) => {
+    // Update refs immediately
+    selectedBookingRef.current = booking;
+    
+    const bookingDate = new Date(booking.date);
+    const dateString = formatDateForAPI(bookingDate);
+    
+    selectedDateStringRef.current = dateString;
+    
+    console.log("🎯 handleRescheduleClick:");
+    console.log("  Booking:", booking.diagnosticBookingId || booking.bookingId);
+    console.log("  Date set in ref:", dateString);
+    
+    // Update states
+    setSelectedBooking(booking);
+    setSelectedDate(bookingDate);
+    setSelectedDateString(dateString);
+    setSelectedSlot("");
+    setAvailableSlots([]);
+    setShowReschedule(true);
+    
+    // Fetch slots with current ref value
+    fetchAvailableSlots(dateString);
+  };
+
+  // ✅ Handle Date Selection - FIXED WITH REFS
+  const handleDateSelect = (date) => {
+    const dateString = formatDateForAPI(date);
+    
+    // Update ref immediately
+    selectedDateStringRef.current = dateString;
+    
+    console.log("🎯 handleDateSelect:");
+    console.log("  Selected day:", date.getDate());
+    console.log("  Date set in ref:", dateString);
+    
+    // Update states
+    setSelectedDate(date);
+    setSelectedDateString(dateString);
+    setSelectedSlot("");
+    
+    // Fetch with ref value
+    fetchAvailableSlots(dateString);
+  };
+
+  // ✅ Generate dates for the date selector
+  const generateDateOptions = () => {
+    const dates = [];
+    const today = new Date();
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      dates.push(date);
+    }
+    
+    return dates;
+  };
+
+  // ✅ USEEFFECT to sync refs with state
+  useEffect(() => {
+    selectedDateStringRef.current = selectedDateString;
+  }, [selectedDateString]);
+  
+  useEffect(() => {
+    selectedBookingRef.current = selectedBooking;
+  }, [selectedBooking]);
+
   // ✅ Determine Booking Type and Render Accordingly
   const renderBookingContent = (booking) => {
-    // Diagnostic Booking (has diagnosticBookingId and serviceType)
+    // Diagnostic Booking
     if (booking.diagnosticBookingId && booking.serviceType) {
       return (
         <>
@@ -174,25 +354,9 @@ const MyBookings = () => {
 
           <p className="text-sm">
             <span className="font-semibold">Date & Time:</span>{" "}
-            {formatDate(booking.date)} , {booking.timeSlot}
+            {formatDateForDisplay(booking.date)} , {booking.timeSlot}
           </p>
 
-          {/* Package Information */}
-          {booking.package && (
-            <div className="mt-2 p-2 bg-blue-50 rounded-md">
-              <p className="text-sm font-semibold text-blue-800">
-                {booking.package.name}
-              </p>
-              <p className="text-xs text-gray-600">
-                {booking.package.totalTestsIncluded} Tests Included
-              </p>
-              <p className="text-xs text-gray-600 mt-1">
-                {booking.package.description}
-              </p>
-            </div>
-          )}
-
-          {/* Diagnostic Center Address - Show for Center Visit */}
           {booking.serviceType === "Center Visit" && booking.diagnostic && booking.diagnostic.address && (
             <p className="text-sm mt-2 flex items-center">
               <span className="font-semibold mr-2">Center Address:</span>
@@ -235,15 +399,14 @@ const MyBookings = () => {
 
         <p className="text-sm">
           <span className="font-semibold">Date & Time:</span>{" "}
-          {formatDate(booking.date)} , {booking.timeSlot}
+          {formatDateForDisplay(booking.date)} , {booking.timeSlot}
         </p>
 
-        {/* Doctor Address - Show only for Offline bookings */}
         {booking.type === "Offline" && booking.doctor && booking.doctor.address && (
           <p className="text-sm mt-2 flex items-center">
             <span className="font-semibold mr-2">Clinic Address:</span>
             <span
-              className="text-blue-700 cursor-pointer hover:text-blue-500 transition-colors break-words"
+              className="text-blue-700 cursor-pointer hover:text-blue-500 transition-colwords"
               onClick={() => openGoogleMaps(booking.doctor.address)}
               title="Click to open in Google Maps"
             >
@@ -280,11 +443,10 @@ const MyBookings = () => {
             <div className="flex justify-between">
               <span className="font-semibold">Date & Time</span>
               <span>
-                {formatDate(booking.date)} - {booking.timeSlot}
+                {formatDateForDisplay(booking.date)} - {booking.timeSlot}
               </span>
             </div>
             
-            {/* Package Details */}
             {booking.package && (
               <>
                 <div className="flex justify-between">
@@ -297,31 +459,16 @@ const MyBookings = () => {
                   <span className="font-semibold">Tests Included</span>
                   <span>{booking.package.totalTestsIncluded} Tests</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-semibold">Description</span>
-                  <span className="text-right max-w-[200px] break-words text-xs">
-                    {booking.package.description}
-                  </span>
-                </div>
               </>
             )}
 
-            {/* Diagnostic Center Details */}
             {booking.diagnostic && (
               <>
                 <div className="flex justify-between">
                   <span className="font-semibold">Center Name</span>
                   <span>{booking.diagnostic.name}</span>
                 </div>
-                {booking.diagnostic.description && (
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Description</span>
-                    <span className="text-right max-w-[200px] break-words text-xs">
-                      {booking.diagnostic.description}
-                    </span>
-                  </div>
-                )}
-                {/* Show Address for Center Visit */}
+      
                 {booking.serviceType === "Center Visit" && booking.diagnostic.address && (
                   <div className="flex justify-between">
                     <span className="font-semibold">Venue</span>
@@ -364,7 +511,7 @@ const MyBookings = () => {
           <div className="flex justify-between">
             <span className="font-semibold">Date & Time</span>
             <span>
-              {formatDate(booking.date)} - {booking.timeSlot}
+              {formatDateForDisplay(booking.date)} - {booking.timeSlot}
             </span>
           </div>
           {booking.patient && (
@@ -388,7 +535,6 @@ const MyBookings = () => {
                 <span>{booking.doctor.specialization}</span>
               </div>
               
-              {/* Clickable Address in Booking Details - Only for Offline */}
               {booking.type === "Offline" && booking.doctor.address && (
                 <div className="flex justify-between">
                   <span className="font-semibold">Venue</span>
@@ -522,12 +668,7 @@ const MyBookings = () => {
                 {selectedBooking.status !== "Cancelled" && (
                   <>
                     <button
-                      onClick={() => {
-                        setShowReschedule(true);
-                        setSelectedDate("");
-                        setSelectedSlot("");
-                        setAvailableSlots([]);
-                      }}
+                      onClick={() => handleRescheduleClick(selectedBooking)}
                       className="w-full border border-green-600 text-green-600 py-2 rounded-md font-semibold"
                     >
                       Reschedule Booking
@@ -541,7 +682,14 @@ const MyBookings = () => {
                   </>
                 )}
                 <button
-                  onClick={() => setSelectedBooking(null)}
+                  onClick={() => {
+                    setSelectedBooking(null);
+                    selectedBookingRef.current = null;
+                    setSelectedSlot("");
+                    setAvailableSlots([]);
+                    setSelectedDateString("");
+                    selectedDateStringRef.current = "";
+                  }}
                   className="w-full bg-gray-200 text-gray-700 py-2 rounded-md font-semibold"
                 >
                   Close
@@ -566,6 +714,7 @@ const MyBookings = () => {
                     handleCancelBooking(selectedBooking);
                     setShowCancelConfirm(false);
                     setSelectedBooking(null);
+                    selectedBookingRef.current = null;
                   }}
                   className="px-4 py-2 bg-red-600 text-white rounded-md font-semibold"
                 >
@@ -589,103 +738,146 @@ const MyBookings = () => {
                       max-h-[80vh] overflow-y-auto">
               <h3 className="text-lg font-bold mb-4">Reschedule Booking</h3>
 
+
               {/* Current Booking */}
               <div className="bg-blue-100 p-3 rounded-md mb-4">
                 <p className="text-sm font-semibold">Current Booking</p>
                 <p className="text-blue-700 font-medium">
-                  {new Date(selectedBooking.date).toLocaleDateString("en-IN", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}{" "}
-                  - {selectedBooking.timeSlot}
+                  {formatDateForDisplay(selectedBooking.date)} - {selectedBooking.timeSlot}
                 </p>
               </div>
 
+              {/* Service Type Info for Diagnostic */}
+              {selectedBooking.diagnosticBookingId && (
+                <div className="bg-yellow-100 p-3 rounded-md mb-4">
+                  <p className="text-sm font-semibold">Service Type</p>
+                  <p className="text-yellow-700 font-medium">
+                    {selectedBooking.serviceType === "Home Collection" 
+                      ? "Home Collection" 
+                      : "Center Visit"}
+                  </p>
+                </div>
+              )}
+
               {/* Dates Row (7 days) */}
-              <div className="flex space-x-2 overflow-x-auto mb-4">
-                {Array.from({ length: 7 }, (_, i) => {
-                  const d = new Date();
-                  d.setDate(d.getDate() + i);
+              <div className="flex space-x-2 overflow-x-auto mb-4 pb-2">
+                {generateDateOptions().map((date, i) => {
+                  const dateString = formatDateForAPI(date);
+                  const isSelected = selectedDateStringRef.current === dateString;
+                  
                   return (
                     <button
                       key={i}
-                      onClick={() => {
-                        setSelectedDate(new Date(d));
-                        // For doctor consultations
-                        if (!selectedBooking.diagnosticBookingId && selectedBooking.doctorId) {
-                          fetchAvailableSlots(
-                            selectedBooking.doctorId._id,
-                            formatDate(d),
-                            selectedBooking.type.toLowerCase()
-                          );
-                        }
-                        // For diagnostic - you can add similar logic here if needed
-                      }}
-                      className={`flex flex-col items-center min-w-[50px] px-2 py-2 rounded-md ${selectedDate instanceof Date &&
-                          selectedDate.toDateString() === d.toDateString()
+                      onClick={() => handleDateSelect(date)}
+                      className={`flex flex-col items-center min-w-[50px] px-2 py-2 rounded-md ${isSelected
                           ? "bg-blue-500 text-white"
                           : "bg-gray-100 text-gray-700"
                         }`}
                     >
                       <span className="text-xs font-medium">
-                        {d.toLocaleDateString("en-US", { weekday: "short" })}
+                        {date.toLocaleDateString("en-US", { weekday: "short" })}
                       </span>
-                      <span className="text-lg font-semibold">{d.getDate()}</span>
+                      <span className="text-lg font-semibold">{date.getDate()}</span>
+                      <span className="text-xs text-gray-500">
+                        {date.getMonth() + 1}/{date.getFullYear()}
+                      </span>
                     </button>
                   );
                 })}
               </div>
 
+              {/* Display selected date in UI */}
+              {/* {selectedDate && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700">
+                    Selected Date: {selectedDate.toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                  <p className="text-sm font-medium text-green-600">
+                    Sending to backend: {selectedDateStringRef.current}
+                  </p>
+                </div>
+              )} */}
+
+              {/* Loading State */}
+              {loadingSlots && (
+                <div className="text-center py-4">
+                  <p>Loading available slots...</p>
+                </div>
+              )}
+
               {/* Slots Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                {availableSlots.length > 0 ? (
-                  availableSlots
-                    .filter((slot) => !slot.isExpired)
-                    .map((slot) => (
-                      <button
-                        key={slot._id}
-                        onClick={() => !slot.isBooked && setSelectedSlot(slot.timeSlot)}
-                        disabled={slot.isBooked}
-                        className={`p-2 rounded-md text-sm transition-colors ${slot.isBooked
-                            ? "bg-red-500 text-white cursor-not-allowed"
-                            : selectedSlot === slot.timeSlot
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          }`}
-                      >
-                        {slot.timeSlot}
-                      </button>
-                    ))
-                ) : (
-                  <p>No slots available for this date</p>
-                )}
-              </div>
+              {!loadingSlots && (
+                <div>
+                  <p className="text-sm font-medium mb-2">
+                    Available Time Slots
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {availableSlots.length > 0 ? (
+                      availableSlots.map((slot) => (
+                        <button
+                          key={slot._id || slot.timeSlot}
+                          onClick={() => setSelectedSlot(slot.timeSlot)}
+                          disabled={slot.isBooked}
+                          className={`p-3 rounded-md text-sm transition-colors ${slot.isBooked
+                              ? "bg-red-100 text-red-600 cursor-not-allowed"
+                              : selectedSlot === slot.timeSlot
+                                ? "bg-blue-500 text-white"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                        >
+                          <div className="font-medium">{slot.timeSlot}</div>
+                          {slot.isBooked && (
+                            <div className="text-xs mt-1 text-red-500">Booked</div>
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="col-span-2 text-center py-4 text-gray-500">
+                        No slots available for this date
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Slot Info */}
+              {selectedSlot && (
+                <div className="bg-green-100 p-3 rounded-md mb-4">
+                  <p className="text-sm font-semibold">Selected Slot</p>
+                  <p className="text-green-700 font-medium">
+                    {selectedDateStringRef.current} - {selectedSlot}
+                  </p>
+                </div>
+              )}
 
               {/* Actions */}
-              <div className="flex justify-between items-center mt-6">
+              <div className="flex justify-between items-center mt-6 pt-4 border-t">
                 <button
-                  onClick={() => setShowReschedule(false)}
-                  className="px-3 py-1.5 rounded-full bg-gray-200 text-purple-600 text-sm font-medium"
+                  onClick={() => {
+                    setShowReschedule(false);
+                    setSelectedSlot("");
+                    setAvailableSlots([]);
+                    setSelectedDateString("");
+                    selectedDateStringRef.current = "";
+                  }}
+                  className="px-4 py-2 rounded-md bg-gray-200 text-gray-700 text-sm font-medium"
                 >
                   Cancel
                 </button>
 
                 <button
-                  onClick={() => {
-                    if (!selectedSlot) {
-                      alert("Please select a time slot first!");
-                      return;
-                    }
-                    confirmReschedule();
-                  }}
+                  onClick={confirmReschedule}
                   disabled={!selectedSlot}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedSlot
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${selectedSlot
+                      ? "bg-blue-600 text-white hover:bg-green-700"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                     }`}
                 >
-                  Reschedule
+                  Confirm Reschedule
                 </button>
               </div>
             </div>

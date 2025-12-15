@@ -4,7 +4,7 @@ import Navbar from "./Navbar";
 import {
   FaUser, FaEnvelope, FaPhone, FaIdCard, FaVenusMars, FaCalendarAlt,
   FaBuilding, FaEdit, FaCamera, FaRulerVertical, FaWeight,
-  FaHeartbeat, FaEye, FaTimes, FaSave
+  FaHeartbeat, FaEye, FaTimes, FaSave, FaIdBadge
 } from "react-icons/fa";
 
 const MyProfile = () => {
@@ -38,14 +38,15 @@ const MyProfile = () => {
       .then((response) => {
         if (response.data.staff) {
           setStaffProfile(response.data.staff);
-          // Initialize edit form with health data including eyesight
+          // Initialize edit form with health data including eyesight and employeeId
           setEditForm({
             height: response.data.staff.height || '',
             weight: response.data.staff.weight || '',
             BP: response.data.staff.BP || '',
             BMI: response.data.staff.BMI || '',
             eyeSight: response.data.staff.eyeSight || '',
-            eyeCheckupResults: response.data.staff.eyeCheckupResults || ''
+            eyeCheckupResults: response.data.staff.eyeCheckupResults || '',
+            employeeId: response.data.staff.employeeId || ''
           });
         } else {
           setError("Profile data not found.");
@@ -123,6 +124,7 @@ const MyProfile = () => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const options = {
       year: 'numeric',
       month: 'long',
@@ -141,6 +143,7 @@ const MyProfile = () => {
       age: "Age",
       gender: "Gender",
       department: "Department",
+      employeeId: "Employee ID",
       height: "Height",
       weight: "Weight",
       BP: "Blood Pressure",
@@ -159,6 +162,7 @@ const MyProfile = () => {
       age: <FaCalendarAlt className="text-gray-400 text-lg" />,
       gender: <FaVenusMars className="text-gray-400 text-lg" />,
       department: <FaBuilding className="text-gray-400 text-lg" />,
+      employeeId: <FaIdBadge className="text-gray-400 text-lg" />,
       height: <FaRulerVertical className="text-gray-400 text-lg" />,
       weight: <FaWeight className="text-gray-400 text-lg" />,
       BP: <FaHeartbeat className="text-gray-400 text-lg" />,
@@ -181,14 +185,8 @@ const MyProfile = () => {
         return `${value} cm`;
       case 'weight':
         return `${value} kg`;
-      case 'BMI':
-        return value;
-      case 'BP':
-        return value;
-      case 'eyeSight':
-        return value || 'null';
-      case 'eyeCheckupResults':
-        return value || 'null';
+      case 'employeeId':
+        return value || 'Not Assigned';
       default:
         return value;
     }
@@ -279,13 +277,19 @@ const MyProfile = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 {staffProfile.name ? staffProfile.name.charAt(0).toUpperCase() + staffProfile.name.slice(1) : 'No Name'}
               </h1>
-              <div className="flex justify-center gap-3 mt-3">
+              <div className="flex flex-col items-center gap-2 mt-3">
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(staffProfile.role)}`}>
                   {staffProfile.role}
                 </span>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getDepartmentColor(staffProfile.department)}`}>
                   {staffProfile.department}
                 </span>
+                {staffProfile.employeeId && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                    <FaIdBadge className="mr-2" />
+                    ID: {staffProfile.employeeId}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -302,7 +306,7 @@ const MyProfile = () => {
               </div>
 
               <div className="space-y-4">
-                {['name', 'email', 'contact_number', 'age', 'gender'].map(field => (
+                {['name', 'email', 'contact_number', 'age', 'gender', 'employeeId'].map(field => (
                   <div key={field} className="flex items-center p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3 flex-1">
                       {getFieldIcon(field)}
@@ -377,8 +381,6 @@ const MyProfile = () => {
                 ))}
 
                 {/* Special big container for Remark */}
-                {/* Special big container for Remark */}
-                {/* Special big container for Remark */}
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-start space-x-3">
                     {getFieldIcon('eyeCheckupResults')}
@@ -418,13 +420,13 @@ const MyProfile = () => {
         </div>
       </div>
 
-      {/* Edit Modal - Health Information Only */}
+      {/* Edit Modal - Health Information and Employee ID */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[95vh] overflow-y-auto">
             <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
               <h2 className="text-lg font-semibold text-gray-800">
-                Edit Health Information
+                Edit Information
               </h2>
               <button
                 onClick={() => setShowEditModal(false)}
@@ -435,7 +437,29 @@ const MyProfile = () => {
             </div>
 
             <div className="p-4">
-              {/* Health Information Only */}
+              {/* Employee ID Section */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Employee Information</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Employee ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="employeeId"
+                      value={editForm.employeeId || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter Employee ID"
+                      required
+                    />
+                    <p className="text-sm text-gray-500 mt-1">Unique identification number for the employee</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Health Information Section */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Health Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

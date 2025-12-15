@@ -35,17 +35,66 @@ const ScanAndXRayPage = () => {
 
   useEffect(() => {
     const fetchScans = async () => {
+      if (!staffId) {
+        setError("Staff ID not found. Please log in again.");
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await axios.get(
-          "https://api.credenthealth.com/api/admin/getallxrays"
+          `https://api.credenthealth.com/api/staff/getscans/${staffId}`
         );
-        if (response.data && response.data.length > 0) {
-          setScans(response.data);
-          setFilteredScans(response.data);
+        
+        console.log("Backend Scan Response:", response.data);
+        
+        if (response.data && response.data.data) {
+          const scansData = response.data.data;
+          
+          // Transform the data to match the expected format
+          const transformedScans = scansData.map(item => {
+            const scanData = item.scanId || item;
+            
+            // ✅ Get ALL diagnostic IDs from multiple sources
+            const diagnosticIds = [];
+            
+            // 1. From item.diagnosticId (single)
+            if (item.diagnosticId) {
+              diagnosticIds.push(item.diagnosticId._id || item.diagnosticId);
+            }
+            
+            // 2. From scanData.diagnostics array (MOST IMPORTANT - this has all IDs)
+            if (scanData.diagnostics && Array.isArray(scanData.diagnostics)) {
+              scanData.diagnostics.forEach(id => {
+                if (id && !diagnosticIds.includes(id)) {
+                  diagnosticIds.push(id);
+                }
+              });
+            }
+            
+            // 3. Diagnostic name for display
+            const diagnosticName = item.diagnosticId?.name || 'Multiple Diagnostics';
+            
+            return {
+              _id: scanData._id,
+              title: scanData.title || item.title,
+              price: scanData.price || item.price || 0,
+              preparation: scanData.preparation || item.preparation,
+              reportTime: scanData.reportTime || item.reportTime,
+              image: scanData.image || item.image,
+              diagnosticIds: diagnosticIds, // ✅ ARRAY of ALL diagnostic IDs
+              diagnosticName: diagnosticName
+            };
+          });
+          
+          console.log("Transformed Scans with ALL Diagnostic IDs:", transformedScans);
+          setScans(transformedScans);
+          setFilteredScans(transformedScans);
         } else {
           setError("No scans available");
         }
       } catch (err) {
+        console.error("Error fetching scans:", err);
         setError("Error fetching data");
       } finally {
         setLoading(false);
@@ -53,7 +102,7 @@ const ScanAndXRayPage = () => {
     };
 
     fetchScans();
-  }, []);
+  }, [staffId]);
 
   // Filter scans based on search
   useEffect(() => {
@@ -74,6 +123,33 @@ const ScanAndXRayPage = () => {
     setSelectedScan(null);
   };
 
+  // ✅ Check if cart already has diagnostic IDs
+  const getCartDiagnosticIds = () => {
+    const diagnosticIdsJSON = localStorage.getItem('cartDiagnosticIds');
+    if (diagnosticIdsJSON) {
+      try {
+        return JSON.parse(diagnosticIdsJSON);
+      } catch (err) {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  // ✅ Merge diagnostic IDs (add new ones to existing)
+  const mergeDiagnosticIds = (existingIds, newIds) => {
+    if (!existingIds || existingIds.length === 0) return newIds;
+    if (!newIds || newIds.length === 0) return existingIds;
+    
+    const merged = [...existingIds];
+    newIds.forEach(id => {
+      if (id && !merged.includes(id)) {
+        merged.push(id);
+      }
+    });
+    return merged;
+  };
+
   const handleAddToCart = async (scan) => {
     if (!staffId) {
       alert("Staff ID not found in localStorage!");
@@ -83,12 +159,33 @@ const ScanAndXRayPage = () => {
     try {
       const response = await axios.post(
         `https://api.credenthealth.com/api/staff/addcart/${staffId}`,
-        { itemId: scan._id, action: "inc" }
+        { 
+          itemId: scan._id, 
+          action: "inc",
+          diagnosticId: scan.diagnosticIds && scan.diagnosticIds.length > 0 
+            ? scan.diagnosticIds[0] // First diagnostic as primary
+            : null
+        }
       );
 
       if (response.status === 200) {
+        // ✅ Store ALL diagnostic IDs in localStorage as array
+        if (scan.diagnosticIds && scan.diagnosticIds.length > 0) {
+          // Get existing diagnostic IDs from cart
+          const existingDiagnosticIds = getCartDiagnosticIds();
+          
+          // Merge with new diagnostic IDs
+          const mergedDiagnosticIds = mergeDiagnosticIds(existingDiagnosticIds, scan.diagnosticIds);
+          
+          // Store merged array
+          localStorage.setItem('cartDiagnosticIds', JSON.stringify(mergedDiagnosticIds));
+          console.log('✅ All Scan Diagnostic IDs stored:', mergedDiagnosticIds);
+        }
+        
+        // Add to local cart state
         setCartItems(prev => [...prev, scan._id]);
         setIsModalOpen(false);
+        alert(`${scan.title} added to cart successfully!`);
       } else {
         alert("Failed to add item to cart");
       }
@@ -107,10 +204,28 @@ const ScanAndXRayPage = () => {
     try {
       const response = await axios.post(
         `https://api.credenthealth.com/api/staff/addcart/${staffId}`,
-        { itemId: scan._id, action: "inc" }
+        { 
+          itemId: scan._id, 
+          action: "inc",
+          diagnosticId: scan.diagnosticIds && scan.diagnosticIds.length > 0 
+            ? scan.diagnosticIds[0]
+            : null
+        }
       );
 
       if (response.status === 200) {
+        // ✅ Store ALL diagnostic IDs in localStorage as array
+        if (scan.diagnosticIds && scan.diagnosticIds.length > 0) {
+          // Get existing diagnostic IDs from cart
+          const existingDiagnosticIds = getCartDiagnosticIds();
+          
+          // Merge with new diagnostic IDs
+          const mergedDiagnosticIds = mergeDiagnosticIds(existingDiagnosticIds, scan.diagnosticIds);
+          
+          // Store merged array
+          localStorage.setItem('cartDiagnosticIds', JSON.stringify(mergedDiagnosticIds));
+        }
+        
         setCartItems(prev => [...prev, scan._id]);
         setIsModalOpen(false);
         navigate("/cart");
@@ -137,9 +252,16 @@ const ScanAndXRayPage = () => {
       );
       if (response.status === 200) {
         setCartItems(prev => prev.filter(id => id !== scanId));
+        alert('Item removed from cart');
+        
+        // If cart becomes empty, clear diagnostic IDs
+        if (response.data.items.length === 0) {
+          localStorage.removeItem('cartDiagnosticIds');
+        }
       }
     } catch (err) {
       console.error("Error removing from cart:", err);
+      alert('Error removing item from cart');
     }
   };
 
@@ -148,9 +270,46 @@ const ScanAndXRayPage = () => {
     return value || defaultValue;
   };
 
+  // Show diagnostic info
+  const renderDiagnosticInfo = (scan) => {
+    if (scan.diagnosticIds && scan.diagnosticIds.length > 1) {
+      return (
+        <div className="mt-1">
+          <span className="text-xs text-blue-600 font-medium">
+            Available at {scan.diagnosticIds.length} diagnostic centers
+          </span>
+        </div>
+      );
+    } else if (scan.diagnosticIds && scan.diagnosticIds.length === 1) {
+      return (
+        <div className="mt-1">
+          <span className="text-xs text-gray-500">
+            {scan.diagnosticName}
+          </span>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
       <Navbar />
+      
+      {/* Floating Cart Button */}
+      <button
+        onClick={() => navigate('/cart')}
+        className="fixed bottom-6 right-6 z-40 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+        title="View Cart"
+      >
+        <FaCartPlus className="text-xl" />
+        {cartItems.length > 0 && (
+          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+            {cartItems.length}
+          </span>
+        )}
+      </button>
+      
       <div className="flex flex-col min-h-screen pb-16 lg:pb-0">
         <main className="py-6 px-4 sm:px-6 lg:px-8 flex-1">
           <h1 className="text-3xl font-bold text-center text-gray-800 mb-4">Scans & X-Rays</h1>
@@ -185,16 +344,19 @@ const ScanAndXRayPage = () => {
                   >
                     {/* Top row: Name + Price */}
                     <div className="flex justify-between items-center mb-1">
-                      <h2 className="text-base font-semibold text-gray-800 relative inline-block pb-1">
-                        {renderScanProperty(scan.title)}
-                        <span 
-                          className="absolute left-0 bottom-0 w-full h-1 bg-blue-500 rounded"
-                          style={{
-                            animation: "underline 0.3s ease-in-out",
-                            marginTop: "18px"
-                          }}
-                        ></span>
-                      </h2>
+                      <div className="flex-1">
+                        <h2 className="text-base font-semibold text-gray-800 relative inline-block pb-1">
+                          {renderScanProperty(scan.title)}
+                          <span 
+                            className="absolute left-0 bottom-0 w-full h-1 bg-blue-500 rounded"
+                            style={{
+                              animation: "underline 0.3s ease-in-out",
+                              marginTop: "18px"
+                            }}
+                          ></span>
+                        </h2>
+                        {renderDiagnosticInfo(scan)}
+                      </div>
                       <span className="text-base font-semibold text-gray-800">
                         ₹{renderScanProperty(scan.price, "0")}
                       </span>
@@ -258,6 +420,18 @@ const ScanAndXRayPage = () => {
                     {/* Preparation details */}
                     {openScanId === scan._id && (
                       <div className="mt-2 p-3 rounded border border-blue-100">
+                        {/* Show diagnostic centers info */}
+                        {scan.diagnosticIds && scan.diagnosticIds.length > 0 && (
+                          <div className="mb-3">
+                            <h3 className="text-sm font-semibold text-gray-800 mb-1">
+                              Available at {scan.diagnosticIds.length} Diagnostic Center(s)
+                            </h3>
+                            <p className="text-xs text-gray-600">
+                              This scan is available at multiple diagnostic centers
+                            </p>
+                          </div>
+                        )}
+                        
                         {scan.preparation && (
                           <div>
                             <h3 className="text-sm font-semibold text-gray-800 mb-1">Preparation</h3>
@@ -286,9 +460,22 @@ const ScanAndXRayPage = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-md">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Add to Cart</h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-2">
                 Are you sure you want to add <strong>{renderScanProperty(selectedScan.title)}</strong> to your cart?
               </p>
+              
+              {/* Show diagnostic info in modal */}
+              {selectedScan.diagnosticIds && selectedScan.diagnosticIds.length > 1 && (
+                <p className="text-sm text-blue-600 mb-4">
+                  ⓘ This scan is available at {selectedScan.diagnosticIds.length} diagnostic centers
+                </p>
+              )}
+              
+              {selectedScan.diagnosticIds && selectedScan.diagnosticIds.length === 1 && (
+                <p className="text-sm text-gray-500 mb-4">
+                  <strong>Note:</strong> This scan is associated with {selectedScan.diagnosticName}
+                </p>
+              )}
 
               <div className="flex justify-between space-x-4">
                 <button
